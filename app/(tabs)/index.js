@@ -2,16 +2,16 @@ import React from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image } from 'react-native';
 
 const categories = [
-  { name: 'Groceries',  },
-  { name: 'Snacks',  },
-  { name: 'Toiletries',  },
-  { name: 'Beverages',  },
+  { name: 'Groceries', icon: require('../../assets/groceries.jpeg') },
+  { name: 'Snacks', icon: require('../../assets/snacks.jpeg') },
+  { name: 'Toiletries', icon: require('../../assets/toiletries.jpeg') },
+  { name: 'Beverages', icon: require('../../assets/beverages.jpeg') },
 ];
 
 const featuredItems = [
-  { name: 'Milk', price: '₹30', },
-  { name: 'Bread', price: '₹25',  },
-  { name: 'Soap', price: '₹20',  },
+  { name: 'Milk', price: '₹30', image: require('../../assets/milk.jpeg') },
+  { name: 'Bread', price: '₹25', image: require('../../assets/bread.jpeg') },
+  { name: 'Soap', price: '₹20', image: require('../../assets/soap.jpeg') },
 ];
 
 export default function Home() {
