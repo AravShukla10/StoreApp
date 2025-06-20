@@ -6,52 +6,27 @@ import {
   FlatList,
   ScrollView,
 } from 'react-native';
-
-const currentOrders = [
-  {
-    id: 'ORD001',
-    items: ['Milk', 'Bread'],
-    total: 85,
-    status: 'Packing',
-  },
-  {
-    id: 'ORD002',
-    items: ['Soap', 'Shampoo'],
-    total: 120,
-    status: 'Ready to Collect',
-  },
-];
-
-const previousOrders = [
-  {
-    id: 'ORD000',
-    items: ['Sugar', 'Snacks'],
-    total: 95,
-    status: 'Delivered',
-  },
-  {
-    id: 'ORD099',
-    items: ['Toothpaste', 'Oil'],
-    total: 210,
-    status: 'Delivered',
-  },
-];
+import { useOrders } from '../context/OrderContext';
 
 export default function Orders() {
+  const { orders } = useOrders();
+
+  const sortedOrders = [...orders].sort(
+  (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+);
+
+  const currentOrders = sortedOrders.filter((o) => o.status !== 'Delivered');
+  const previousOrders = sortedOrders.filter((o) => o.status === 'Delivered');
+
   const renderOrder = ({ item }) => (
     <View style={styles.orderCard}>
       <Text style={styles.orderId}>Order #{item.id}</Text>
-      <Text style={styles.itemList}>Items: {item.items.join(', ')}</Text>
-      <Text style={styles.total}>Total: ₹{item.total}</Text>
-      <Text
-        style={[
-          styles.status,
-          item.status === 'Delivered'
-            ? styles.delivered
-            : styles.inProgress,
-        ]}
-      >
-        {item.status}
+      <Text style={styles.itemList}>
+        Items: {Object.entries(item.items).map(([name, qty]) => `${name} × ${qty}`).join(', ')}
+      </Text>
+      <Text style={styles.total}>Status: {item.status}</Text>
+      <Text style={styles.time}>
+        Placed on: {new Date(item.createdAt).toLocaleString()}
       </Text>
     </View>
   );
@@ -59,20 +34,28 @@ export default function Orders() {
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.heading}>Current Orders</Text>
-      <FlatList
-        data={currentOrders}
-        renderItem={renderOrder}
-        keyExtractor={(item) => item.id}
-        scrollEnabled={false}
-      />
+      {currentOrders.length === 0 ? (
+        <Text style={styles.emptyText}>No current orders.</Text>
+      ) : (
+        <FlatList
+          data={currentOrders}
+          renderItem={renderOrder}
+          keyExtractor={(item) => item.id.toString()}
+          scrollEnabled={false}
+        />
+      )}
 
       <Text style={styles.heading}>Previous Orders</Text>
-      <FlatList
-        data={previousOrders}
-        renderItem={renderOrder}
-        keyExtractor={(item) => item.id}
-        scrollEnabled={false}
-      />
+      {previousOrders.length === 0 ? (
+        <Text style={styles.emptyText}>No previous orders.</Text>
+      ) : (
+        <FlatList
+          data={previousOrders}
+          renderItem={renderOrder}
+          keyExtractor={(item) => item.id.toString()}
+          scrollEnabled={false}
+        />
+      )}
     </ScrollView>
   );
 }
@@ -108,19 +91,19 @@ const styles = StyleSheet.create({
   },
   total: {
     fontSize: 14,
-    color: '#555',
+    fontWeight: '600',
+    color: '#ff9900',
     marginBottom: 4,
   },
-  status: {
+  time: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 4,
+  },
+  emptyText: {
     fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'right',
-    marginTop: 8,
-  },
-  delivered: {
-    color: '#28a745',
-  },
-  inProgress: {
-    color: '#ff9900',
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 20,
   },
 });
