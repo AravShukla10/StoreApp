@@ -51,6 +51,10 @@ export default function Cart() {
   Alert.alert('Order Placed', 'You will be notified once it is packed.');
 };
 
+const removeItem = (itemName) => {
+  updateCart(itemName, -cart[itemName]);
+};
+
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.title}>My Cart</Text>
@@ -73,20 +77,28 @@ export default function Cart() {
                 </View>
 
                 <View style={styles.counterContainer}>
-                  <TouchableOpacity
-                    onPress={() => updateCart(item.name, -1)}
-                    style={styles.counterBtn}
-                  >
-                    <Text style={styles.counterText}>−</Text>
-                  </TouchableOpacity>
-                  <Text style={styles.counterValue}>{item.quantity}</Text>
-                  <TouchableOpacity
-                    onPress={() => updateCart(item.name, 1)}
-                    style={styles.counterBtn}
-                  >
-                    <Text style={styles.counterText}>+</Text>
-                  </TouchableOpacity>
-                </View>
+  <TouchableOpacity
+    onPress={() => updateCart(item.name, -1)}
+    style={styles.counterBtn}
+  >
+    <Text style={styles.counterText}>−</Text>
+  </TouchableOpacity>
+  <Text style={styles.counterValue}>{item.quantity}</Text>
+  <TouchableOpacity
+    onPress={() => updateCart(item.name, 1)}
+    style={styles.counterBtn}
+  >
+    <Text style={styles.counterText}>+</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    onPress={() => removeItem(item.name)}
+    style={styles.removeBtn}
+  >
+    <Text style={styles.removeBtnText}>Remove</Text>
+  </TouchableOpacity>
+</View>
+
               </View>
             )}
           />
@@ -186,4 +198,18 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+
+  removeBtn: {
+  marginLeft: 16,
+  paddingHorizontal: 10,
+  paddingVertical: 4,
+  backgroundColor: '#ff4d4f',
+  borderRadius: 6,
+},
+removeBtnText: {
+  color: '#fff',
+  fontWeight: '600',
+  fontSize: 12,
+},
+
 });

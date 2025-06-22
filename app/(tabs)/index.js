@@ -47,15 +47,24 @@ export default function Home() {
             <Text style={styles.itemName}>{item.name}</Text>
             <Text style={styles.itemPrice}>₹{item.price}</Text>
 
-            <View style={styles.counterContainer}>
-              <TouchableOpacity onPress={() => updateCart(item.name, -1)} style={styles.counterBtn}>
-                <Text style={styles.counterText}>−</Text>
-              </TouchableOpacity>
-              <Text style={styles.counterValue}>{cart[item.name] || 0}</Text>
-              <TouchableOpacity onPress={() => updateCart(item.name, 1)} style={styles.counterBtn}>
-                <Text style={styles.counterText}>+</Text>
-              </TouchableOpacity>
-            </View>
+            {cart[item.name] > 0 ? (
+  <View style={styles.counterContainer}>
+    <TouchableOpacity onPress={() => updateCart(item.name, -1)} style={styles.counterBtn}>
+      <Text style={styles.counterText}>−</Text>
+    </TouchableOpacity>
+    <Text style={styles.counterValue}>{cart[item.name]}</Text>
+    <TouchableOpacity onPress={() => updateCart(item.name, 1)} style={styles.counterBtn}>
+      <Text style={styles.counterText}>+</Text>
+    </TouchableOpacity>
+  </View>
+) : (
+  <TouchableOpacity
+    onPress={() => updateCart(item.name, 1)}
+    style={styles.addToCartBtn}
+  >
+    <Text style={styles.addToCartText}>Add to Cart</Text>
+  </TouchableOpacity>
+)}
           </View>
         ))}
       </View>
@@ -97,4 +106,17 @@ const styles = StyleSheet.create({
   },
   counterText: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   counterValue: { fontSize: 16, fontWeight: '600', width: 24, textAlign: 'center' },
+
+  addToCartBtn: {
+  backgroundColor: '#28a745',
+  paddingVertical: 6,
+  paddingHorizontal: 20,
+  borderRadius: 6,
+},
+addToCartText: {
+  color: '#fff',
+  fontSize: 14,
+  fontWeight: 'bold',
+},
+
 });
