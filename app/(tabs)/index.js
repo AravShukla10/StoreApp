@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, ActivityIndicator,
+  View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, ActivityIndicator, Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
 import { useCart } from '../context/CartContext'; // adjust path if needed
 
 const BASE_URL = 'http://10.0.2.2:5000'; // Your API base URL
@@ -24,16 +25,14 @@ export default function Home() {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         const itemsData = await response.json();
-       console.log('Fetched items:', itemsData);
-        // Set featured items directly
+
         setFeaturedItems(itemsData);
 
         // Extract unique types for categories
         const uniqueTypes = [...new Set(itemsData.map(item => item.type))];
         const formattedCategories = uniqueTypes.map(type => ({
           name: type,
-          // icon: require('../../assets/placeholder.jpeg'), // You might want a generic placeholder icon here
-          // Or dynamically load icons if you have a mapping
+          // You can add static icons here if desired, e.g., icon: require('../../assets/placeholder.jpeg')
         }));
         setCategories(formattedCategories);
 
@@ -47,6 +46,60 @@ export default function Home() {
 
     fetchShopData();
   }, []); // Empty dependency array means this effect runs once on mount
+
+  // Function to sync cart changes with the backend
+  const syncCartWithBackend = async (itemName, change) => {
+    // Find the item ID from the currently loaded featuredItems based on itemName
+    const item = featuredItems.find(i => i.name === itemName);
+    if (!item) {
+      Alert.alert("Error", "Item not found for cart update.");
+      return;
+    }
+
+    // Retrieve userId and token from AsyncStorage
+    const userId = await AsyncStorage.getItem('userId');
+    const token = await AsyncStorage.getItem('token');
+
+    if (!userId || !token) {
+      Alert.alert("Authentication Required", "Please log in to update your cart.");
+      console.warn("User ID or Token not found in AsyncStorage. Cannot sync cart.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${BASE_URL}/api/users/${userId}/cart`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`, // Send the authentication token
+        },
+        body: JSON.stringify({
+          itemId: item._id, // Send the backend's item ID
+          quantity: change, // Send the change in quantity (+1 for add, -1 for remove)
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      console.log('Cart updated on backend:', responseData.cart);
+      // Optionally: if the backend returns the full updated cart, you could use it to
+      // re-sync your local cart state, ensuring consistency.
+    } catch (apiError) {
+      console.error("Failed to sync cart with backend:", apiError);
+      Alert.alert("Error", `Failed to update cart on server: ${apiError.message}`);
+      // In a real app, you might want to revert the local cart state if the backend update fails
+    }
+  };
+
+  // Wrapper function to update local cart and then sync with backend
+  const handleUpdateCart = (itemName, change) => {
+    updateCart(itemName, change); // Update local state first
+    syncCartWithBackend(itemName, change); // Then sync with backend
+  };
 
   if (loading) {
     return (
@@ -93,25 +146,29 @@ export default function Home() {
         {featuredItems.length > 0 ? (
           featuredItems.map((item) => (
             <View key={item._id} style={styles.featuredCard}>
-              {item.imageUrl && (
-                <Image source={{ uri: item.imageUrl }} style={styles.featuredImage} />
-              )}
+              <Image 
+                source={{ uri: item.imageUrl || 'https://picsum.photos/60/60' }} // Picusm URL as fallback
+                style={styles.featuredImage} 
+              />
               <Text style={styles.itemName}>{item.name}</Text>
-              <Text style={styles.itemPrice}>₹{item.price || item.quantity_avl}</Text> {/* Assuming price might be quantity_avl if not explicit */}
+              {/* Display price_per_quantity if available, otherwise quantity_avl as a fallback for price */}
+              <Text style={styles.itemPrice}>
+                ₹{item.price_per_quantity !== undefined ? item.price_per_quantity : item.quantity_avl}
+              </Text>
 
               {cart[item.name] > 0 ? (
                 <View style={styles.counterContainer}>
-                  <TouchableOpacity onPress={() => updateCart(item.name, -1)} style={styles.counterBtn}>
+                  <TouchableOpacity onPress={() => handleUpdateCart(item.name, -1)} style={styles.counterBtn}>
                     <Text style={styles.counterText}>−</Text>
                   </TouchableOpacity>
                   <Text style={styles.counterValue}>{cart[item.name]}</Text>
-                  <TouchableOpacity onPress={() => updateCart(item.name, 1)} style={styles.counterBtn}>
+                  <TouchableOpacity onPress={() => handleUpdateCart(item.name, 1)} style={styles.counterBtn}>
                     <Text style={styles.counterText}>+</Text>
                   </TouchableOpacity>
                 </View>
               ) : (
                 <TouchableOpacity
-                  onPress={() => updateCart(item.name, 1)}
+                  onPress={() => handleUpdateCart(item.name, 1)}
                   style={styles.addToCartBtn}
                 >
                   <Text style={styles.addToCartText}>Add to Cart</Text>
