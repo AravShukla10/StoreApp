@@ -1,0 +1,250 @@
+// controllers/itemController.js
+const Item = require('../models/Item');
+const Shop = require('../models/Shop'); // Assuming you have a Shop model
+const cloudinary = require('cloudinary').v2; // Uncommented and now active
+
+// Configure Cloudinary (replace with your actual credentials in .env)
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Add a new item
+exports.addItem = async (req, res) => {
+    try {
+        const { name, type, quantity_avl, shopId } = req.body;
+        let imageUrl = req.body.imageUrl; // Will be used if image is uploaded separately or provided
+        let imagePublicId = req.body.imagePublicId; // Will be used if image is uploaded separately or provided
+
+        // Validate if shopId is provided
+        if (!shopId) {
+            return res.status(400).json({ message: 'Shop ID is required to add an item.' });
+        }
+
+        // Check if the shop exists
+        const shop = await Shop.findById(shopId);
+        if (!shop) {
+            return res.status(404).json({ message: 'Shop not found.' });
+        }
+
+        // If an image is sent directly with item creation (e.g., base64 string)
+        // This part assumes you'd send base64 in a field like 'imageFile'
+        if (req.body.imageFile) {
+            try {
+                const uploadResult = await cloudinary.uploader.upload(req.body.imageFile, {
+                    folder: 'item_images' // Optional: specify a folder in Cloudinary
+                });
+                imageUrl = uploadResult.secure_url;
+                imagePublicId = uploadResult.public_id;
+            } catch (uploadError) {
+                console.error('Cloudinary upload error during item creation:', uploadError);
+                return res.status(500).json({ message: 'Image upload failed.', error: uploadError.message });
+            }
+        }
+
+        const newItem = new Item({
+            name,
+            type,
+            quantity_avl,
+            shopId,
+            imageUrl,
+            imagePublicId
+        });
+
+        const savedItem = await newItem.save();
+        res.status(201).json(savedItem);
+    } catch (error) {
+        console.error('Error adding item:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// Remove an item
+exports.removeItem = async (req, res) => {
+    try {
+        const { id } = req.params; // Item ID from URL parameters
+
+        const deletedItem = await Item.findByIdAndDelete(id);
+
+        if (!deletedItem) {
+            return res.status(404).json({ message: 'Item not found.' });
+        }
+
+        // If an image was associated, delete it from Cloudinary as well
+        if (deletedItem.imagePublicId) {
+            try {
+                await cloudinary.uploader.destroy(deletedItem.imagePublicId);
+                console.log(`Deleted image from Cloudinary: ${deletedItem.imagePublicId}`);
+            } catch (cloudinaryError) {
+                console.error('Cloudinary deletion error during item removal:', cloudinaryError);
+                // Continue with response even if Cloudinary deletion fails, as item is already removed from DB
+            }
+        }
+
+        res.status(200).json({ message: 'Item deleted successfully.', item: deletedItem });
+    } catch (error) {
+        console.error('Error removing item:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// Update an item (name, type, quantity, but NOT image directly via this route)
+// Image updates should go through uploadItemImage or deleteItemImage
+exports.updateItem = async (req, res) => {
+    try {
+        const { id } = req.params; // Item ID from URL parameters
+        const { name, type, quantity_avl } = req.body; // Removed imageUrl, imagePublicId from direct update
+
+        const updatedItem = await Item.findByIdAndUpdate(
+            id,
+            { name, type, quantity_avl }, // Only update non-image fields here
+            { new: true, runValidators: true }
+        );
+
+        if (!updatedItem) {
+            return res.status(404).json({ message: 'Item not found.' });
+        }
+
+        res.status(200).json(updatedItem);
+    } catch (error) {
+        console.error('Error updating item:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// Update item quantity (increase/decrease)
+exports.updateItemQuantity = async (req, res) => {
+    try {
+        const { id } = req.params; // Item ID from URL parameters
+        const { quantityChange } = req.body; // Positive for increase, negative for decrease
+
+        if (typeof quantityChange !== 'number' || quantityChange === 0) {
+            return res.status(400).json({ message: 'Invalid quantity change value.' });
+        }
+
+        const item = await Item.findById(id);
+
+        if (!item) {
+            return res.status(404).json({ message: 'Item not found.' });
+        }
+
+        const newQuantity = item.quantity_avl + quantityChange;
+
+        if (newQuantity < 0) {
+            return res.status(400).json({ message: 'Quantity cannot be less than zero.' });
+        }
+
+        item.quantity_avl = newQuantity;
+        const updatedItem = await item.save();
+
+        res.status(200).json(updatedItem);
+    } catch (error) {
+        console.error('Error updating item quantity:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// Get all items for a specific shop
+exports.getItemsByShop = async (req, res) => {
+    try {
+        const { shopId } = req.params; // Shop ID from URL parameters
+
+        // Validate if shopId is provided
+        if (!shopId) {
+            return res.status(400).json({ message: 'Shop ID is required to fetch items.' });
+        }
+
+        // Check if the shop exists
+        const shop = await Shop.findById(shopId);
+        if (!shop) {
+            return res.status(404).json({ message: 'Shop not found.' });
+        }
+
+        const items = await Item.find({ shopId }).sort({ name: 1 }); // Sort by name for consistency
+        res.status(200).json(items);
+    } catch (error) {
+        console.error('Error fetching items by shop:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// --- Image Specific Operations ---
+
+// Upload/Update item image
+exports.uploadItemImage = async (req, res) => {
+    try {
+        const { id } = req.params; // Item ID
+        const { imageFile } = req.body; // Base64 string of the image
+
+        if (!imageFile) {
+            return res.status(400).json({ message: 'Image file (base64) is required.' });
+        }
+
+        const item = await Item.findById(id);
+        if (!item) {
+            return res.status(404).json({ message: 'Item not found.' });
+        }
+
+        // If an old image exists, delete it from Cloudinary before uploading a new one
+        if (item.imagePublicId) {
+            try {
+                await cloudinary.uploader.destroy(item.imagePublicId);
+                console.log(`Deleted old image from Cloudinary: ${item.imagePublicId}`);
+            } catch (cloudinaryError) {
+                console.error('Cloudinary deletion error for old image:', cloudinaryError);
+                // Continue even if old image deletion fails
+            }
+        }
+
+        // Upload new image to Cloudinary
+        const uploadResult = await cloudinary.uploader.upload(imageFile, {
+            folder: 'item_images' // Optional: specify a folder
+        });
+
+        item.imageUrl = uploadResult.secure_url;
+        item.imagePublicId = uploadResult.public_id;
+        const updatedItem = await item.save();
+
+        res.status(200).json({ message: 'Item image updated successfully.', item: updatedItem });
+    } catch (error) {
+        console.error('Error uploading item image:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};
+
+// Delete item image
+exports.deleteItemImage = async (req, res) => {
+    try {
+        const { id } = req.params; // Item ID
+
+        const item = await Item.findById(id);
+        if (!item) {
+            return res.status(404).json({ message: 'Item not found.' });
+        }
+
+        if (!item.imageUrl && !item.imagePublicId) {
+            return res.status(404).json({ message: 'No image found for this item to delete.' });
+        }
+
+        // Delete image from Cloudinary
+        if (item.imagePublicId) {
+            try {
+                await cloudinary.uploader.destroy(item.imagePublicId);
+                console.log(`Deleted image from Cloudinary: ${item.imagePublicId}`);
+            } catch (cloudinaryError) {
+                console.error('Cloudinary deletion error:', cloudinaryError);
+                // Continue with response even if Cloudinary deletion fails
+            }
+        }
+
+        item.imageUrl = undefined; // Set to undefined to remove the field
+        item.imagePublicId = undefined; // Set to undefined to remove the field
+        const updatedItem = await item.save();
+
+        res.status(200).json({ message: 'Item image deleted successfully.', item: updatedItem });
+    } catch (error) {
+        console.error('Error deleting item image:', error);
+        res.status(500).json({ message: 'Server error', error: error.message });
+    }
+};

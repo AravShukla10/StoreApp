@@ -4,9 +4,11 @@ dotenv.config();
 const mongoose = require('mongoose');
 const User=require('./models/User');
 const Item=require('./models/Item');
-const Shop=require('./models/Shop');
+const Shop=require('./models/Shop'); // Import the Shop model
 const Booking=require('./models/Booking');
 const userRoutes = require('./routes/userRoutes');
+const itemRoutes = require('./routes/itemRoutes');
+const shopRoutes = require('./routes/shopRoutes'); // Import shop routes
 
 
 const MONGOURI = process.env.URI;const app = express();
@@ -21,9 +23,8 @@ if(connection)
 
 app.use(express.json());
 app.use('/api/users', userRoutes);
-
-
-
+app.use('/api/items', itemRoutes);
+app.use('/api/shops', shopRoutes); // Use shop routes
 
 app.listen(5000,()=>{
     console.log("Server is running on 5000");
