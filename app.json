@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "StoreApp2",
+    "name": "Daily Need",
     "slug": "StoreApp2",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -28,7 +28,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"

@@ -21,7 +21,7 @@ export default function Login() {
     const user = JSON.parse(stored);
     if (username === user.username && password === user.password) {
       await AsyncStorage.setItem('session', 'active');
-      router.replace('/(tabs)'); // or your main app route
+      router.replace('/(tabs)'); 
     } else {
       Alert.alert('Error', 'Invalid credentials.');
     }
