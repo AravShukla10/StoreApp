@@ -28,6 +28,12 @@ exports.addItem = async (req, res) => {
             return res.status(404).json({ message: 'Shop not found.' });
         }
 
+        // Check for duplicate item within the same shop by name and type
+        const existingItem = await Item.findOne({ name, type, shopId });
+        if (existingItem) {
+            return res.status(409).json({ message: 'An item with this name and type already exists in this shop.' });
+        }
+
         // If an image is sent directly with item creation (e.g., base64 string)
         // This part assumes you'd send base64 in a field like 'imageFile'
         if (req.body.imageFile) {
@@ -53,6 +59,11 @@ exports.addItem = async (req, res) => {
         });
 
         const savedItem = await newItem.save();
+
+        // Add the new item's ID to the shop's items array
+        shop.items.push(savedItem._id);
+        await shop.save();
+
         res.status(201).json(savedItem);
     } catch (error) {
         console.error('Error adding item:', error);
@@ -69,6 +80,13 @@ exports.removeItem = async (req, res) => {
 
         if (!deletedItem) {
             return res.status(404).json({ message: 'Item not found.' });
+        }
+
+        // Remove the item's ID from the associated shop's items array
+        const shop = await Shop.findById(deletedItem.shopId);
+        if (shop) {
+            shop.items = shop.items.filter(item => item.toString() !== deletedItem._id.toString());
+            await shop.save();
         }
 
         // If an image was associated, delete it from Cloudinary as well
