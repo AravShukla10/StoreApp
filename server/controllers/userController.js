@@ -1,56 +1,83 @@
 const User = require('../models/User');
 const otpGenerator = require('otp-generator');
 const jwt = require('jsonwebtoken');
+
 // ----------------- helpers -----------------
 const sendOtpForTesting = (phone, otp) => {
   console.log(`[TEST] OTP ${otp} -> ${phone}`);
 };
 
-// -------------- AUTH FLOW ------------------
-exports.signupOrLogin = async (req, res) => {
+// Helper function to generate and save OTP
+const generateAndSaveOtp = async (user) => {
+  const otp = otpGenerator.generate(6, {
+    upperCaseAlphabets: false,
+    lowerCaseAlphabets: false,
+    specialChars: false,
+  });
+  const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+
+  user.otp = otp;
+  user.otpExpiresAt = otpExpiresAt;
+  await user.save();
+  sendOtpForTesting(user.phone, otp);
+  return otp; // Return OTP for testing/response
+};
+
+// -------------- AUTH FLOW - SIGNUP ------------------
+exports.signup = async (req, res) => {
   const { phone, name } = req.body;
 
-  // very light validation – tweak as needed
   if (!phone) return res.status(400).json({ message: 'Phone is required.' });
   if (!/^\d{10}$/.test(phone))
     return res.status(400).json({ message: 'Phone must be 10 digits.' });
+  if (!name || !name.trim())
+    return res.status(400).json({ message: 'Name is required for signup.' });
 
   try {
     let user = await User.findOne({ phone });
-    const otp = otpGenerator.generate(6, {
-      upperCaseAlphabets: false,
-      lowerCaseAlphabets: false,
-      specialChars: false,
-    });
-    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
-
     if (user) {
-      user.otp = otp;
-      user.otpExpiresAt = otpExpiresAt;
-    } else {
-      if (!name || !name.trim())
-        return res
-          .status(400)
-          .json({ message: 'Name is required for new users.' });
-
-      user = new User({ name: name.trim(), phone, otp, otpExpiresAt });
+      return res.status(409).json({ message: 'User with this phone number already exists. Please login instead.' });
     }
 
-    await user.save();
-    sendOtpForTesting(phone, otp);
+    user = new User({ name: name.trim(), phone });
+    const otp = await generateAndSaveOtp(user);
 
-    res.status(user.isNew ? 201 : 200).json({
-      message: user.isNew
-        ? 'User created. OTP sent.'
-        : 'OTP refreshed for existing user.',
-      // Return OTP only in dev / testing
-      otp,
+    res.status(201).json({
+      message: 'User created. OTP sent for verification.',
+      otp, // Return OTP only in dev / testing
     });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };
+
+// -------------- AUTH FLOW - LOGIN ------------------
+exports.login = async (req, res) => {
+  const { phone } = req.body;
+
+  if (!phone) return res.status(400).json({ message: 'Phone is required.' });
+  if (!/^\d{10}$/.test(phone))
+    return res.status(400).json({ message: 'Phone must be 10 digits.' });
+
+  try {
+    const user = await User.findOne({ phone });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found. Please signup.' });
+    }
+
+    const otp = await generateAndSaveOtp(user);
+
+    res.status(200).json({
+      message: 'OTP sent for login.',
+      otp, // Return OTP only in dev / testing
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
 
 exports.verifyOtpAndLogin = async (req, res) => {
   const { phone, otp } = req.body;
@@ -68,8 +95,6 @@ exports.verifyOtpAndLogin = async (req, res) => {
     user.otpExpiresAt = undefined;
     await user.save();
 
-    // TODO: generate & return JWT
-   // res.status(200).json({ message: 'Login successful', userId: user._id });
     const token = jwt.sign(
      { id: user._id, phone: user.phone },
     process.env.JWT_SECRET,
@@ -77,7 +102,7 @@ exports.verifyOtpAndLogin = async (req, res) => {
     );
 
     res.status(200).json({
-             message: 'Login successful',
+      message: 'Login successful',
       userId: user._id,
       token,                  
     });
@@ -183,11 +208,10 @@ exports.getUserByPhone = async (req, res) => {
     );
 
     res.status(200).json({
-             message: 'Login successful',
+      message: 'User found and token generated',
       userId: user._id,
       token,                  
     });
-    res.json({user, token});
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error', error: err.message });

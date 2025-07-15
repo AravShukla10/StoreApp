@@ -2,19 +2,22 @@ const express = require('express');
 const router = express.Router();
 
 const {
-  signupOrLogin,
+  signup, // Changed from signupOrLogin
+  login,  // New login function
   verifyOtpAndLogin,
   getUserById,
   updateUser,
   getUserCart,
   addItemToCart,
   getUserBookings,
-    getUserByPhone
+  getUserByPhone
 } = require('../controllers/userController');
 const { authMiddleware } = require('../middleware/auth');
+
 // ---------- Auth ----------
-router.post('/auth/send-otp', signupOrLogin);     // send / resend OTP
-router.post('/auth/verify-otp', verifyOtpAndLogin);
+router.post('/auth/signup', signup);     // Signup route
+router.post('/auth/login', login);       // Login route
+router.post('/auth/verify-otp', verifyOtpAndLogin); // Verify OTP for both signup and login
 
 // ---------- User profile ----------
 router.get('/:id', getUserById);
@@ -29,4 +32,5 @@ router.get('/:id/bookings', getUserBookings);
 
 // ---------- Lookup by phone ----------
 router.get('/phone/:phone', getUserByPhone); 
+
 module.exports = router;
