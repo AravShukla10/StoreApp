@@ -8,7 +8,8 @@ const Shop=require('./models/Shop'); // Import the Shop model
 const Booking=require('./models/Booking');
 const userRoutes = require('./routes/userRoutes');
 const itemRoutes = require('./routes/itemRoutes');
-const shopRoutes = require('./routes/shopRoutes'); // Import shop routes
+const shopRoutes = require('./routes/shopRoutes');
+const bookingRoutes = require('./routes/bookingRoutes'); // Import booking routes
 
 
 const MONGOURI = process.env.URI;const app = express();
@@ -24,7 +25,8 @@ if(connection)
 app.use(express.json());
 app.use('/api/users', userRoutes);
 app.use('/api/items', itemRoutes);
-app.use('/api/shops', shopRoutes); // Use shop routes
+app.use('/api/shops', shopRoutes);
+app.use('/api/bookings', bookingRoutes); // Use booking routes
 
 app.listen(5000,()=>{
     console.log("Server is running on 5000");
