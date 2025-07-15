@@ -1,24 +1,69 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image,
+  View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, ActivityIndicator,
 } from 'react-native';
 import { useCart } from '../context/CartContext'; // adjust path if needed
 
-const categories = [
-  { name: 'Groceries', icon: require('../../assets/groceries.jpeg') },
-  { name: 'Snacks', icon: require('../../assets/snacks.jpeg') },
-  { name: 'Toiletries', icon: require('../../assets/toiletries.jpeg') },
-  { name: 'Beverages', icon: require('../../assets/beverages.jpeg') },
-];
-
-const featuredItems = [
-  { id: '1', name: 'Milk', price: 30, image: require('../../assets/milk.jpeg') },
-  { id: '2', name: 'Bread', price: 25, image: require('../../assets/bread.jpeg') },
-  { id: '3', name: 'Soap', price: 20, image: require('../../assets/soap.jpeg') },
-];
+const BASE_URL = 'http://10.0.2.2:5000'; // Your API base URL
+const DEFAULT_SHOP_ID = '687631e69d85fbc4f3f85c78'; // Default shop ID as requested
 
 export default function Home() {
   const { cart, updateCart } = useCart();
+  const [categories, setCategories] = useState([]);
+  const [featuredItems, setFeaturedItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchShopData = async () => {
+      try {
+        setLoading(true);
+        // Fetch all items for the default shop
+        const response = await fetch(`${BASE_URL}/api/items/shop/${DEFAULT_SHOP_ID}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const itemsData = await response.json();
+       console.log('Fetched items:', itemsData);
+        // Set featured items directly
+        setFeaturedItems(itemsData);
+
+        // Extract unique types for categories
+        const uniqueTypes = [...new Set(itemsData.map(item => item.type))];
+        const formattedCategories = uniqueTypes.map(type => ({
+          name: type,
+          // icon: require('../../assets/placeholder.jpeg'), // You might want a generic placeholder icon here
+          // Or dynamically load icons if you have a mapping
+        }));
+        setCategories(formattedCategories);
+
+      } catch (e) {
+        console.error("Failed to fetch shop data:", e);
+        setError("Failed to load shop items. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchShopData();
+  }, []); // Empty dependency array means this effect runs once on mount
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text>Loading items...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={{ color: 'red' }}>{error}</Text>
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container}>
@@ -31,42 +76,52 @@ export default function Home() {
       {/* Categories */}
       <Text style={styles.sectionTitle}>Categories</Text>
       <View style={styles.categoriesContainer}>
-        {categories.map((cat, idx) => (
-          <TouchableOpacity key={idx} style={styles.categoryCard}>
-            <Image source={cat.icon} style={styles.categoryIcon} />
-            <Text style={styles.categoryText}>{cat.name}</Text>
-          </TouchableOpacity>
-        ))}
+        {categories.length > 0 ? (
+          categories.map((cat, idx) => (
+            <TouchableOpacity key={idx} style={styles.categoryCard}>
+              {/* <Image source={cat.icon} style={styles.categoryIcon} /> */}
+              <Text style={styles.categoryText}>{cat.name}</Text>
+            </TouchableOpacity>
+          ))
+        ) : (
+          <Text>No categories found for this shop.</Text>
+        )}
       </View>
       {/* Featured Items */}
       <Text style={styles.sectionTitle}>Featured Items</Text>
       <View style={styles.featuredContainer}>
-        {featuredItems.map((item) => (
-          <View key={item.id} style={styles.featuredCard}>
-            <Image source={item.image} style={styles.featuredImage} />
-            <Text style={styles.itemName}>{item.name}</Text>
-            <Text style={styles.itemPrice}>₹{item.price}</Text>
+        {featuredItems.length > 0 ? (
+          featuredItems.map((item) => (
+            <View key={item._id} style={styles.featuredCard}>
+              {item.imageUrl && (
+                <Image source={{ uri: item.imageUrl }} style={styles.featuredImage} />
+              )}
+              <Text style={styles.itemName}>{item.name}</Text>
+              <Text style={styles.itemPrice}>₹{item.price || item.quantity_avl}</Text> {/* Assuming price might be quantity_avl if not explicit */}
 
-            {cart[item.name] > 0 ? (
-  <View style={styles.counterContainer}>
-    <TouchableOpacity onPress={() => updateCart(item.name, -1)} style={styles.counterBtn}>
-      <Text style={styles.counterText}>−</Text>
-    </TouchableOpacity>
-    <Text style={styles.counterValue}>{cart[item.name]}</Text>
-    <TouchableOpacity onPress={() => updateCart(item.name, 1)} style={styles.counterBtn}>
-      <Text style={styles.counterText}>+</Text>
-    </TouchableOpacity>
-  </View>
-) : (
-  <TouchableOpacity
-    onPress={() => updateCart(item.name, 1)}
-    style={styles.addToCartBtn}
-  >
-    <Text style={styles.addToCartText}>Add to Cart</Text>
-  </TouchableOpacity>
-)}
-          </View>
-        ))}
+              {cart[item.name] > 0 ? (
+                <View style={styles.counterContainer}>
+                  <TouchableOpacity onPress={() => updateCart(item.name, -1)} style={styles.counterBtn}>
+                    <Text style={styles.counterText}>−</Text>
+                  </TouchableOpacity>
+                  <Text style={styles.counterValue}>{cart[item.name]}</Text>
+                  <TouchableOpacity onPress={() => updateCart(item.name, 1)} style={styles.counterBtn}>
+                    <Text style={styles.counterText}>+</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => updateCart(item.name, 1)}
+                  style={styles.addToCartBtn}
+                >
+                  <Text style={styles.addToCartText}>Add to Cart</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ))
+        ) : (
+          <Text>No items found for this shop.</Text>
+        )}
       </View>
     </ScrollView>
   );
@@ -74,6 +129,7 @@ export default function Home() {
 
 const styles = StyleSheet.create({
   container: { backgroundColor: '#f2f2f2', padding: 16 },
+  centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   heading: { fontSize: 22, fontWeight: 'bold', marginBottom: 12, color: '#222' },
   searchInput: {
     backgroundColor: '#fff', borderRadius: 8, padding: 10,
@@ -106,17 +162,15 @@ const styles = StyleSheet.create({
   },
   counterText: { fontSize: 18, fontWeight: 'bold', color: '#333' },
   counterValue: { fontSize: 16, fontWeight: '600', width: 24, textAlign: 'center' },
-
   addToCartBtn: {
-  backgroundColor: '#28a745',
-  paddingVertical: 6,
-  paddingHorizontal: 20,
-  borderRadius: 6,
-},
-addToCartText: {
-  color: '#fff',
-  fontSize: 14,
-  fontWeight: 'bold',
-},
-
+    backgroundColor: '#28a745',
+    paddingVertical: 6,
+    paddingHorizontal: 20,
+    borderRadius: 6,
+  },
+  addToCartText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });

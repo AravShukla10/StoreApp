@@ -13,7 +13,7 @@ cloudinary.config({
 // Add a new item
 exports.addItem = async (req, res) => {
     try {
-        const { name, type, quantity_avl, shopId } = req.body;
+        const { name, type, quantity_avl, price_per_quantity, shopId } = req.body;
         let imageUrl = req.body.imageUrl; // Will be used if image is uploaded separately or provided
         let imagePublicId = req.body.imagePublicId; // Will be used if image is uploaded separately or provided
 
@@ -53,6 +53,7 @@ exports.addItem = async (req, res) => {
             name,
             type,
             quantity_avl,
+            price_per_quantity,
             shopId,
             imageUrl,
             imagePublicId
@@ -112,11 +113,11 @@ exports.removeItem = async (req, res) => {
 exports.updateItem = async (req, res) => {
     try {
         const { id } = req.params; // Item ID from URL parameters
-        const { name, type, quantity_avl } = req.body; // Removed imageUrl, imagePublicId from direct update
+        const { name, type, quantity_avl, price_per_quantity } = req.body; // Removed imageUrl, imagePublicId from direct update
 
         const updatedItem = await Item.findByIdAndUpdate(
             id,
-            { name, type, quantity_avl }, // Only update non-image fields here
+            { name, type, quantity_avl, price_per_quantity }, // Only update non-image fields here
             { new: true, runValidators: true }
         );
 
