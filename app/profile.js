@@ -3,13 +3,14 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Modal, Pressable 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 
 // Base URL for your backend API
-const API_BASE_URL = 'http://10.0.2.2:5000/api/users'; // Use 10.0.2.2 for Android emulator to access localhost
+const API_BASE_URL = 'http://10.0.2.2:5000/api/users';
 
-// Custom Message Box Component (copied for consistency across auth-related files)
+// Custom Message Box Component
 const MessageBox = ({ message, type, onClose }) => {
-  const backgroundColor = type === 'error' ? '#dc3545' : '#28a745'; // Red for error, Green for success
+  const backgroundColor = type === 'error' ? '#FF6B6B' : '#4ECDC4';
   const textColor = '#fff';
 
   return (
@@ -23,7 +24,7 @@ const MessageBox = ({ message, type, onClose }) => {
         <View style={[messageBoxStyles.modalView, { backgroundColor }]}>
           <Text style={[messageBoxStyles.modalText, { color: textColor }]}>{message}</Text>
           <Pressable
-            style={[messageBoxStyles.button, { backgroundColor: type === 'error' ? '#c82333' : '#218838' }]}
+            style={[messageBoxStyles.button, { backgroundColor: type === 'error' ? '#FF5252' : '#26A69A' }]}
             onPress={onClose}
           >
             <Text style={messageBoxStyles.textStyle}>OK</Text>
@@ -39,7 +40,7 @@ const messageBoxStyles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 22,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   modalView: {
     margin: 20,
@@ -47,40 +48,41 @@ const messageBoxStyles = StyleSheet.create({
     padding: 35,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+    minWidth: 280,
   },
   modalText: {
-    marginBottom: 15,
+    marginBottom: 20,
     textAlign: 'center',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   button: {
-    borderRadius: 10,
-    padding: 10,
-    elevation: 2,
-    minWidth: 80,
-    alignItems: 'center',
+    borderRadius: 25,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
   },
   textStyle: {
     color: 'white',
-    fontWeight: 'bold',
+    fontWeight: '600',
     textAlign: 'center',
+    fontSize: 16,
   },
 });
 
-
 export default function Profile() {
   const [username, setUsername] = useState('Loading...');
-  const [phone, setPhone] = useState('Loading...'); // Changed from email to phone
+  const [phone, setPhone] = useState('Loading...');
   const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState(''); // 'success' or 'error'
+  const [messageType, setMessageType] = useState('');
 
   const showMessage = (msg, type) => {
     setMessage(msg);
@@ -103,7 +105,7 @@ export default function Profile() {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}`, // Assuming your API requires a token for user data
+              'Authorization': `Bearer ${token}`,
             },
           });
 
@@ -119,7 +121,7 @@ export default function Profile() {
           }
         } else {
           showMessage('User not logged in. Please log in.', 'error');
-          router.replace('/login'); // Redirect to login if no userId or token
+          router.replace('/login');
         }
       } catch (error) {
         console.error('Error loading user data:', error);
@@ -148,33 +150,114 @@ export default function Profile() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.title}>My Profile</Text>
-
-      <View style={styles.profileBox}>
-        <View style={styles.infoBox}>
-          <Text style={styles.label}>Name:</Text>
-          <Text style={styles.value}>{username}</Text>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={['#1E88E5', '#4FC3F7', '#4DD0E1']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.headerContent}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <MaterialIcons name="person" size={40} color="#fff" />
+            </View>
+          </View>
+          <Text style={styles.headerTitle}>My Profile</Text>
+          <Text style={styles.headerSubtitle}>Manage your account</Text>
         </View>
+      </LinearGradient>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.label}>Phone:</Text>
-          <Text style={styles.value}>{phone}</Text>
+      {/* Profile Information Card */}
+      <View style={styles.profileCard}>
+        <View style={styles.profileInfo}>
+          <View style={styles.infoRow}>
+            <View style={styles.infoIconContainer}>
+              <MaterialIcons name="person-outline" size={24} color="#4FC3F7" />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Full Name</Text>
+              <Text style={styles.infoValue}>{username}</Text>
+            </View>
+          </View>
+
+          <View style={styles.divider} />
+
+          <View style={styles.infoRow}>
+            <View style={styles.infoIconContainer}>
+              <MaterialIcons name="phone" size={24} color="#4FC3F7" />
+            </View>
+            <View style={styles.infoContent}>
+              <Text style={styles.infoLabel}>Phone Number</Text>
+              <Text style={styles.infoValue}>{phone}</Text>
+            </View>
+          </View>
         </View>
       </View>
 
-      <View style={styles.section}>
-        <TouchableOpacity style={styles.rowItem} onPress={goToOrders}>
-          <View style={styles.iconBox}>
-            <MaterialIcons name="receipt-long" size={22} color="#555" />
+      {/* Menu Section */}
+      <View style={styles.menuSection}>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        
+        <TouchableOpacity style={styles.menuItem} onPress={goToOrders}>
+          <View style={styles.menuItemLeft}>
+            <LinearGradient
+              colors={['#4FC3F7', '#66BB6A']}
+              style={styles.menuIcon}
+            >
+              <MaterialIcons name="receipt-long" size={20} color="#fff" />
+            </LinearGradient>
+            <Text style={styles.menuItemText}>Your Orders</Text>
           </View>
-          <Text style={styles.labelRow}>Your Orders</Text>
-          <Ionicons name="chevron-forward" size={20} color="#aaa" style={{ marginLeft: 'auto' }} />
+          <View style={styles.menuItemRight}>
+            <Text style={styles.menuItemSubtext}>View order history</Text>
+            <Ionicons name="chevron-forward" size={20} color="#BDBDBD" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem}>
+          <View style={styles.menuItemLeft}>
+            <LinearGradient
+              colors={['#4FC3F7', '#66BB6A']}
+              style={styles.menuIcon}
+            >
+              <MaterialIcons name="settings" size={20} color="#fff" />
+            </LinearGradient>
+            <Text style={styles.menuItemText}>Settings</Text>
+          </View>
+          <View style={styles.menuItemRight}>
+            <Text style={styles.menuItemSubtext}>Account preferences</Text>
+            <Ionicons name="chevron-forward" size={20} color="#BDBDBD" />
+          </View>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.menuItem}>
+          <View style={styles.menuItemLeft}>
+            <LinearGradient
+              colors={['#4FC3F7', '#66BB6A']}
+              style={styles.menuIcon}
+            >
+              <MaterialIcons name="help-outline" size={20} color="#fff" />
+            </LinearGradient>
+            <Text style={styles.menuItemText}>Help & Support</Text>
+          </View>
+          <View style={styles.menuItemRight}>
+            <Text style={styles.menuItemSubtext}>Get assistance</Text>
+            <Ionicons name="chevron-forward" size={20} color="#BDBDBD" />
+          </View>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.logoutButton} onPress={logout}>
-        <Text style={styles.logoutText}>Log Out</Text>
+      {/* Logout Button */}
+      <TouchableOpacity style={styles.logoutContainer} onPress={logout}>
+        <LinearGradient
+          colors={['#FF6B6B', '#FF8E8E']}
+          style={styles.logoutButton}
+        >
+          <MaterialIcons name="logout" size={20} color="#fff" style={styles.logoutIcon} />
+          <Text style={styles.logoutText}>Sign Out</Text>
+        </LinearGradient>
       </TouchableOpacity>
 
       <MessageBox message={message} type={messageType} onClose={closeMessage} />
@@ -185,83 +268,166 @@ export default function Profile() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f2f2f2',
-    padding: 20,
+    backgroundColor: '#F8FAFB',
   },
-  title: {
-    fontSize: 26,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#333',
+  header: {
+    paddingTop: 60,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  profileBox: {
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20,
-    marginBottom: 30,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+  headerContent: {
+    alignItems: 'center',
   },
-  infoBox: {
+  avatarContainer: {
     marginBottom: 15,
   },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  value: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 5,
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#fff',
+    marginBottom: 5,
   },
-  section: {
+  headerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '400',
+  },
+  profileCard: {
     backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    marginBottom: 20,
-    elevation: 1,
+    marginHorizontal: 20,
+    marginTop: -20,
+    borderRadius: 20,
+    padding: 25,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  rowItem: {
+  profileInfo: {
+    gap: 0,
+  },
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
-    borderBottomColor: '#eee',
-    borderBottomWidth: 1,
+    paddingVertical: 15,
   },
-  iconBox: {
-    width: 30,
+  infoIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: '#F0F9FF',
+    justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 15,
   },
-  labelRow: {
+  infoContent: {
+    flex: 1,
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginBottom: 4,
+  },
+  infoValue: {
     fontSize: 16,
-    color: '#333',
-    marginLeft: 16,
+    color: '#1F2937',
+    fontWeight: '600',
   },
-  logoutButton: {
-    backgroundColor: '#ff4d4f',
-    padding: 14,
-    borderRadius: 8,
+  divider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
+    marginVertical: 5,
+  },
+  menuSection: {
+    marginHorizontal: 20,
+    marginTop: 30,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 15,
+  },
+  menuItem: {
+    backgroundColor: '#fff',
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
+    justifyContent: 'space-between',
+    paddingVertical: 18,
+    paddingHorizontal: 20,
+    borderRadius: 15,
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 5,
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 15,
+  },
+  menuItemText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+  },
+  menuItemRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  menuItemSubtext: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '400',
+  },
+  logoutContainer: {
+    marginHorizontal: 20,
+    marginTop: 30,
+    marginBottom: 40,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 15,
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  logoutIcon: {
+    marginRight: 10,
   },
   logoutText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });

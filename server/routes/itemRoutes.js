@@ -3,6 +3,9 @@ const express = require('express');
 const router = express.Router();
 const itemController = require('../controllers/itemController');
 
+// --- ADDED: Route to get all items, filterable by category etc. ---
+router.get('/', itemController.getAllItems);
+
 // Route to add a new item
 router.post('/', itemController.addItem);
 

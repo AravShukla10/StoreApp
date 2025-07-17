@@ -120,7 +120,6 @@ export default function Home() {
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.heading}>Welcome to Daily Need</Text>
       <TextInput
         style={styles.searchInput}
         placeholder="Search items..."
@@ -187,7 +186,6 @@ export default function Home() {
 const styles = StyleSheet.create({
   container: { backgroundColor: '#f2f2f2', padding: 16 },
   centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  heading: { fontSize: 22, fontWeight: 'bold', marginBottom: 12, color: '#222' },
   searchInput: {
     backgroundColor: '#fff', borderRadius: 8, padding: 10,
     fontSize: 16, marginBottom: 20,

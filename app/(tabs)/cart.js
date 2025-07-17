@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCart } from '../context/CartContext'; // Adjust path if needed
+import { useFocusEffect } from '@react-navigation/native';
 
 const BASE_URL = 'http://10.0.2.2:5000'; // Your API base URL
 
@@ -77,9 +78,12 @@ export default function Cart() {
     }
   }, [setCart]); // Depend on setCart to avoid re-creating unnecessarily
 
-  useEffect(() => {
+  useFocusEffect(
+  useCallback(() => {
+    // This will run every time the screen comes into focus
     fetchUserCartUpdated();
-  }, [fetchUserCartUpdated]); // Re-fetch when fetchUserCartUpdated changes
+  }, [fetchUserCartUpdated]) // The dependency array ensures the effect is consistent
+);
 
   // Function to sync cart changes (add/remove/update quantity) with the backend
   const syncCartWithBackend = async (itemId, change) => {

@@ -1,6 +1,8 @@
 // controllers/itemController.js
 const Item = require('../models/Item');
 const Shop = require('../models/Shop'); // Assuming you have a Shop model
+const Category = require('../models/Category');
+const Subcategory = require('../models/Subcategory');
 const cloudinary = require('cloudinary').v2; // Uncommented and now active
 
 // Configure Cloudinary (replace with your actual credentials in .env)
@@ -10,16 +12,40 @@ cloudinary.config({
     api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+exports.getAllItems = async (req, res) => {
+  try {
+    const { category, subcategory, shopId } = req.query;
+    const filter = {};
+    if (category) filter.category = category;
+    if (subcategory) filter.subcategory = subcategory;
+    if (shopId) filter.shopId = shopId;
+
+    const items = await Item.find(filter)
+        .populate('category', 'name')
+        .populate('subcategory', 'name imageUrl');
+    res.status(200).json(items);
+  } catch (error) {
+    console.error('Error fetching items:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 // Add a new item
 exports.addItem = async (req, res) => {
     try {
-        const { name, type, quantity_avl, price_per_quantity, shopId } = req.body;
+        const { name, quantity_avl, price_per_quantity, shopId, category, subcategory } = req.body;
         let imageUrl = req.body.imageUrl; // Will be used if image is uploaded separately or provided
         let imagePublicId = req.body.imagePublicId; // Will be used if image is uploaded separately or provided
 
         // Validate if shopId is provided
         if (!shopId) {
             return res.status(400).json({ message: 'Shop ID is required to add an item.' });
+        }
+        if (!category) {
+            return res.status(400).json({ message: 'Category ID is required.' });
+        }
+        if (!subcategory) {
+            return res.status(400).json({ message: 'Subcategory ID is required.' });
         }
 
         // Check if the shop exists
@@ -28,8 +54,15 @@ exports.addItem = async (req, res) => {
             return res.status(404).json({ message: 'Shop not found.' });
         }
 
+
+        const categoryExists = await Category.findById(category);
+        if (!categoryExists) return res.status(404).json({ message: 'Category not found.' });
+        
+        const subcategoryExists = await Subcategory.findById(subcategory);
+        if (!subcategoryExists) return res.status(404).json({ message: 'Subcategory not found.' });
+
         // Check for duplicate item within the same shop by name and type
-        const existingItem = await Item.findOne({ name, type, shopId });
+        const existingItem = await Item.findOne({ name, shopId, subcategory });
         if (existingItem) {
             return res.status(409).json({ message: 'An item with this name and type already exists in this shop.' });
         }
@@ -51,12 +84,13 @@ exports.addItem = async (req, res) => {
 
         const newItem = new Item({
             name,
-            type,
             quantity_avl,
             price_per_quantity,
             shopId,
             imageUrl,
-            imagePublicId
+            imagePublicId,
+            category, // UPDATED
+            subcategory, // UPDATED
         });
 
         const savedItem = await newItem.save();
@@ -86,19 +120,13 @@ exports.removeItem = async (req, res) => {
         // Remove the item's ID from the associated shop's items array
         const shop = await Shop.findById(deletedItem.shopId);
         if (shop) {
-            shop.items = shop.items.filter(item => item.toString() !== deletedItem._id.toString());
+            shop.items.pull(deletedItem._id);
             await shop.save();
         }
 
         // If an image was associated, delete it from Cloudinary as well
         if (deletedItem.imagePublicId) {
-            try {
-                await cloudinary.uploader.destroy(deletedItem.imagePublicId);
-                console.log(`Deleted image from Cloudinary: ${deletedItem.imagePublicId}`);
-            } catch (cloudinaryError) {
-                console.error('Cloudinary deletion error during item removal:', cloudinaryError);
-                // Continue with response even if Cloudinary deletion fails, as item is already removed from DB
-            }
+            await cloudinary.uploader.destroy(deletedItem.imagePublicId);
         }
 
         res.status(200).json({ message: 'Item deleted successfully.', item: deletedItem });
@@ -113,11 +141,16 @@ exports.removeItem = async (req, res) => {
 exports.updateItem = async (req, res) => {
     try {
         const { id } = req.params; // Item ID from URL parameters
-        const { name, type, quantity_avl, price_per_quantity } = req.body; // Removed imageUrl, imagePublicId from direct update
+        const { name, quantity_avl, price_per_quantity, category, subcategory } = req.body;
+
+        const updateFields = { name, quantity_avl, price_per_quantity, category, subcategory };
+        
+        // Remove undefined fields so they don't overwrite existing data
+        Object.keys(updateFields).forEach(key => updateFields[key] === undefined && delete updateFields[key]);
 
         const updatedItem = await Item.findByIdAndUpdate(
             id,
-            { name, type, quantity_avl, price_per_quantity }, // Only update non-image fields here
+            { $set: updateFields },
             { new: true, runValidators: true }
         );
 
@@ -167,20 +200,8 @@ exports.updateItemQuantity = async (req, res) => {
 // Get all items for a specific shop
 exports.getItemsByShop = async (req, res) => {
     try {
-        const { shopId } = req.params; // Shop ID from URL parameters
-
-        // Validate if shopId is provided
-        if (!shopId) {
-            return res.status(400).json({ message: 'Shop ID is required to fetch items.' });
-        }
-
-        // Check if the shop exists
-        const shop = await Shop.findById(shopId);
-        if (!shop) {
-            return res.status(404).json({ message: 'Shop not found.' });
-        }
-
-        const items = await Item.find({ shopId }).sort({ name: 1 }); // Sort by name for consistency
+        const { shopId } = req.params;
+        const items = await Item.find({ shopId }).sort({ name: 1 });
         res.status(200).json(items);
     } catch (error) {
         console.error('Error fetching items by shop:', error);
