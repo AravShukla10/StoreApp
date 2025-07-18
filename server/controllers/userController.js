@@ -1,3 +1,4 @@
+// controllers/userController.js
 const User = require('../models/User');
 const otpGenerator = require('otp-generator');
 const jwt = require('jsonwebtoken');
@@ -7,7 +8,6 @@ const sendOtpForTesting = (phone, otp) => {
   console.log(`[TEST] OTP ${otp} -> ${phone}`);
 };
 
-// Helper function to generate and save OTP
 const generateAndSaveOtp = async (user) => {
   const otp = otpGenerator.generate(6, {
     upperCaseAlphabets: false,
@@ -18,9 +18,9 @@ const generateAndSaveOtp = async (user) => {
 
   user.otp = otp;
   user.otpExpiresAt = otpExpiresAt;
-  await user.save();
+  await user.save({ validateBeforeSave: false }); // Skip validation to save OTP without name
   sendOtpForTesting(user.phone, otp);
-  return otp; // Return OTP for testing/response
+  return otp;
 };
 
 // -------------- AUTH FLOW - SIGNUP ------------------
@@ -44,7 +44,7 @@ exports.signup = async (req, res) => {
 
     res.status(201).json({
       message: 'User created. OTP sent for verification.',
-      otp, // Return OTP only in dev / testing
+      otp,
     });
   } catch (err) {
     console.error(err);
@@ -70,7 +70,7 @@ exports.login = async (req, res) => {
 
     res.status(200).json({
       message: 'OTP sent for login.',
-      otp, // Return OTP only in dev / testing
+      otp,
     });
   } catch (err) {
     console.error(err);
@@ -78,14 +78,13 @@ exports.login = async (req, res) => {
   }
 };
 
-
 exports.verifyOtpAndLogin = async (req, res) => {
   const { phone, otp } = req.body;
   if (!phone || !otp)
     return res.status(400).json({ message: 'Phone and OTP are required.' });
 
   try {
-    const user = await User.findOne({ phone });
+    const user = await User.findOne({ phone }).select('+otp +otpExpiresAt');
     if (!user) return res.status(404).json({ message: 'User not found.' });
 
     if (user.otp !== otp || user.otpExpiresAt < Date.now())
@@ -93,7 +92,7 @@ exports.verifyOtpAndLogin = async (req, res) => {
 
     user.otp = undefined;
     user.otpExpiresAt = undefined;
-    await user.save();
+    await user.save({ validateBeforeSave: false });
 
     const token = jwt.sign(
      { id: user._id, phone: user.phone },
@@ -104,7 +103,7 @@ exports.verifyOtpAndLogin = async (req, res) => {
     res.status(200).json({
       message: 'Login successful',
       userId: user._id,
-      token,                  
+      token,
     });
   } catch (err) {
     console.error(err);
@@ -115,13 +114,12 @@ exports.verifyOtpAndLogin = async (req, res) => {
 // -------------- USER CRUD ------------------
 exports.getUserById = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-otp -otpExpiresAt');
+    const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found.' });
     res.json(user);
   } catch (err) {
     console.error(err);
-    const code = err.kind === 'ObjectId' ? 400 : 500;
-    res.status(code).json({ message: 'Error', error: err.message });
+    res.status(500).json({ message: 'Error', error: err.message });
   }
 };
 
@@ -137,50 +135,70 @@ exports.updateUser = async (req, res) => {
     res.json({ message: 'User updated', user });
   } catch (err) {
     console.error(err);
-    const code = err.kind === 'ObjectId' ? 400 : 500;
-    res.status(code).json({ message: 'Error', error: err.message });
+    res.status(500).json({ message: 'Error', error: err.message });
   }
 };
 
 // -------------- CART ------------------
 exports.getUserCart = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).populate('cart.itemId');
+    const user = await User.findById(req.params.id).populate({
+        path: 'cart.itemId',
+        model: 'Item'
+    });
     if (!user) return res.status(404).json({ message: 'User not found.' });
     res.json(user.cart);
   } catch (err) {
     console.error(err);
-    const code = err.kind === 'ObjectId' ? 400 : 500;
-    res.status(code).json({ message: 'Error', error: err.message });
+    res.status(500).json({ message: 'Error', error: err.message });
   }
 };
 
 exports.addItemToCart = async (req, res) => {
-  const { itemId, quantity  } = req.body;
+  const { itemId, quantity } = req.body;
   if (!itemId) return res.status(400).json({ message: 'itemId is required.' });
 
   try {
     const user = await User.findById(req.params.id);
     if (!user) return res.status(404).json({ message: 'User not found.' });
 
-    const existing = user.cart.find(
+    const existingIndex = user.cart.findIndex(
       (ci) => ci.itemId.toString() === itemId.toString()
     );
-    if (existing)
-        { 
-            existing.quantity += quantity;
-            if(existing.quantity <= 0) 
-            user.cart.splice(user.cart.indexOf(existing), 1);
+
+    if (existingIndex > -1) {
+        user.cart[existingIndex].quantity += quantity;
+        if (user.cart[existingIndex].quantity <= 0) {
+            user.cart.splice(existingIndex, 1);
         }
-    else user.cart.push({ itemId, quantity });
+    } else if (quantity > 0) {
+        user.cart.push({ itemId, quantity });
+    }
 
     await user.save();
-    res.json({ message: 'Cart updated', cart: user.cart });
+    const populatedUser = await User.findById(req.params.id).populate('cart.itemId');
+    res.json({ message: 'Cart updated', cart: populatedUser.cart });
   } catch (err) {
     console.error(err);
-    const code = err.kind === 'ObjectId' ? 400 : 500;
-    res.status(code).json({ message: 'Error', error: err.message });
+    res.status(500).json({ message: 'Error', error: err.message });
   }
+};
+
+exports.clearUserCart = async (req, res) => {
+    try {
+      const user = await User.findById(req.params.id);
+      if (!user) {
+        return res.status(404).json({ message: 'User not found.' });
+      }
+
+      user.cart = [];
+      await user.save();
+
+      res.status(200).json({ message: 'Cart cleared successfully.' });
+    } catch (err) {
+      console.error('Error clearing cart:', err);
+      res.status(500).json({ message: 'Server error', error: err.message });
+    }
 };
 
 // -------------- BOOKINGS ------------------
@@ -191,8 +209,7 @@ exports.getUserBookings = async (req, res) => {
     res.json(user.bookings);
   } catch (err) {
     console.error(err);
-    const code = err.kind === 'ObjectId' ? 400 : 500;
-    res.status(code).json({ message: 'Error', error: err.message });
+    res.status(500).json({ message: 'Error', error: err.message });
   }
 };
 
@@ -204,7 +221,7 @@ exports.getUserByPhone = async (req, res) => {
     return res.status(400).json({ message: 'Phone must be 10 digits.' });
 
   try {
-    const user = await User.findOne({ phone }).select('-otp -otpExpiresAt');
+    const user = await User.findOne({ phone });
     if (!user) return res.status(404).json({ message: 'User not found.' });
        const token = jwt.sign(
      { id: user._id, phone: user.phone },
@@ -215,7 +232,7 @@ exports.getUserByPhone = async (req, res) => {
     res.status(200).json({
       message: 'User found and token generated',
       userId: user._id,
-      token,                  
+      token,
     });
   } catch (err) {
     console.error(err);

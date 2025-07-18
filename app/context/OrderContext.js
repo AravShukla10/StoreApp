@@ -1,67 +1,47 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useState, useContext, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const BASE_URL = 'http://10.0.2.2:5000';
 
 const OrderContext = createContext();
 
 export const OrderProvider = ({ children }) => {
   const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const loadOrders = async () => {
-      const stored = await AsyncStorage.getItem('orders');
-      if (stored) setOrders(JSON.parse(stored));
-    };
-    loadOrders();
-  }, []);
-
-  // Modify placeOrder to accept userId, token, and orderData for backend API call
-  const placeOrder = async (userId, token, orderData) => {
+  const fetchOrders = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
-      const response = await fetch('http://10.0.2.2:5000/api/orders', {
-        method: 'POST',
+      const userId = await AsyncStorage.getItem('userId');
+      const token = await AsyncStorage.getItem('token');
+
+      if (!userId || !token) {
+        throw new Error('User is not authenticated.');
+      }
+
+      const response = await fetch(`${BASE_URL}/api/bookings?userId=${userId}`, {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          userId,
-          shopId: '687631e69d85fbc4f3f85c78', // Assuming a default shop ID for orders as well
-          items: orderData, // This should be an array of { itemId, quantity }
-          totalAmount: orderData.reduce((sum, item) => {
-            // This calculation would ideally use the actual price from fetchedItems
-            // For now, it assumes orderData already has a price or calculates based on assumed price
-            return sum + (item.price_per_quantity * item.quantity || 0);
-          }, 0),
-          status: 'Pending',
-        }),
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        throw new Error('Failed to fetch orders from the server.');
       }
 
-      const newOrder = await response.json();
-      const updatedOrders = [...orders, newOrder];
-      setOrders(updatedOrders);
-      await AsyncStorage.setItem('orders', JSON.stringify(updatedOrders));
-      return newOrder;
-    } catch (error) {
-      console.error("Error placing order via API:", error);
-      throw error; // Re-throw to be caught by the caller
+      const data = await response.json();
+      setOrders(data);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const updateOrderStatus = async (id, status) => {
-    const updated = orders.map((order) =>
-      order.id === id ? { ...order, status } : order
-    );
-    setOrders(updated);
-    await AsyncStorage.setItem('orders', JSON.stringify(updated));
-  };
+  }, []);
 
   return (
-    <OrderContext.Provider value={{ orders, placeOrder, updateOrderStatus }}>
+    <OrderContext.Provider value={{ orders, loading, error, fetchOrders }}>
       {children}
     </OrderContext.Provider>
   );
