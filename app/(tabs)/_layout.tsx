@@ -134,6 +134,16 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="offers"
+          options={{
+            tabBarLabel: "Offers",
+            tabBarLabelStyle: styles.tabLabel,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="pricetag-outline" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="cart"
           options={{
             tabBarLabel: "Cart",
