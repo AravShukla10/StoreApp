@@ -1,9 +1,14 @@
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Pressable
+  View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Pressable,Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import * as Notifications from "expo-notifications";
+import Constants from 'expo-constants';
+import * as Application from 'expo-application';
+
+
 
 // Base URL for your backend API
 const API_BASE_URL = 'http://10.0.2.2:5000/api/users'; // Use 10.0.2.2 for Android emulator to access localhost
@@ -76,6 +81,56 @@ const messageBoxStyles = StyleSheet.create({
   },
 });
 
+async function registerForPushNotifications() {
+  try {
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+
+    if (finalStatus !== "granted") {
+      return;
+    }
+
+    const expoPushToken = (await Notifications.getExpoPushTokenAsync({
+      projectId: "7a2139da-74de-48df-acc9-1deae64047f7",
+    })).data;
+
+    console.log("Expo Push Token:", expoPushToken);
+       const userId = await AsyncStorage.getItem('userId');
+       const response = await fetch(`${API_BASE_URL}/${userId}/save-push-token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: expoPushToken }),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Failed to save push token');
+      }
+
+      console.log('Successfully saved push token to backend:', responseData.message);
+
+
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+      });
+    }
+  } catch (error) {
+    console.error("Error in registerForPushNotifications:", error);
+  }
+}
 
 export default function Login() {
   const [phone, setPhone] = useState('');
@@ -94,6 +149,8 @@ export default function Login() {
     setMessage('');
     setMessageType('');
   };
+ 
+
 
   const handleLoginRequest = async () => {
     if (!phone) {
@@ -148,6 +205,8 @@ export default function Login() {
       if (response.ok) {
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('userId', data.userId);
+        // 3. Register for push notifications
+        await registerForPushNotifications();
         showMessage('Login successful!', 'success');
         router.replace('/(tabs)'); // Navigate to main app route
       } else {

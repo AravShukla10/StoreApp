@@ -4,6 +4,8 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+// 1. Import the notification service
+import { registerForPushNotificationsAsync } from './services/notificationService';
 
 // Base URL for your backend API
 const API_BASE_URL = 'http://10.0.2.2:5000/api/users'; // Use 10.0.2.2 for Android emulator to access localhost
@@ -149,6 +151,8 @@ export default function SignUp() {
       if (response.ok) {
         await AsyncStorage.setItem('token', data.token);
         await AsyncStorage.setItem('userId', data.userId);
+        // 3. Register for push notifications
+        await registerForPushNotificationsAsync();
         showMessage('Account created and logged in successfully!', 'success');
         router.replace('/(tabs)'); // Navigate to main app route
       } else {

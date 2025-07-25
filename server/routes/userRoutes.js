@@ -12,7 +12,8 @@ const {
   addItemToCart,
   clearUserCart, // Added for clearing the cart
   getUserBookings,
-  getUserByPhone
+  getUserByPhone,
+  savePushToken, // 1. Import the new controller function
 } = require('../controllers/userController');
 
 // ---------- Auth ----------
@@ -34,5 +35,9 @@ router.get('/:id/bookings', getUserBookings);
 
 // ---------- Lookup by phone ----------
 router.get('/phone/:phone', getUserByPhone);
+
+// ---------- PUSH NOTIFICATIONS (NEW ROUTE) ----------
+// 2. Add the route to save the user's push notification token
+router.post('/:id/save-push-token', savePushToken);
 
 module.exports = router;

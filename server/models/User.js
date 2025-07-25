@@ -18,6 +18,7 @@ const UserSchema = new Schema(
     otpExpiresAt: { type: Date },
     cart: [CartItemSchema],
     bookings: [{ type: Schema.Types.ObjectId, ref: 'Booking' }],
+    pushToken: { type: String },
   },
   { timestamps: true }
 );

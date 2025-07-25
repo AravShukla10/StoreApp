@@ -2,6 +2,7 @@ const express = require ('express');
 const dotenv = require('dotenv');
 dotenv.config();
 const mongoose = require('mongoose');
+const admin = require('firebase-admin'); // 1. Import firebase-admin
 const User=require('./models/User');
 const Item=require('./models/Item');
 const Shop=require('./models/Shop'); // Import the Shop model
@@ -12,10 +13,16 @@ const shopRoutes = require('./routes/shopRoutes');
 const bookingRoutes = require('./routes/bookingRoutes'); // Import booking routes
 const categoryRoutes = require('./routes/categoryRoutes');
 
+// 2. Add your Service Account Key
+const serviceAccount = require('./serviceAccountKey.json');
 
 const MONGOURI = process.env.URI;
 const app = express();
 
+// 3. Initialize Firebase Admin SDK
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount)
+});
 
 async function connectDB() {
     const connection = await mongoose.connect(MONGOURI);

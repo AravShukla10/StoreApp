@@ -1,42 +1,62 @@
-import { useEffect, useState } from 'react';
-import { Redirect } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect } from "react";
+import { Redirect } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as Notifications from "expo-notifications";
+
+// Show notifications as banners/etc. when the app is in the foreground
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+     shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+    // iOS 14+
+    shouldShowBanner: true,
+    shouldShowList: true,
+  }),
+});
 
 export default function Index() {
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
+    // Listen for notifications received in the foreground
+    const notificationReceivedSubscription = Notifications.addNotificationReceivedListener(notification => {
+      console.log('--- Notification Received in Foreground ---');
+      console.log(JSON.stringify(notification.request.content, null, 2));
+    });
+
+    // Listen for user interactions with notifications
+    const notificationResponseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('--- User Interacted With Notification ---');
+      console.log(JSON.stringify(response.notification.request.content, null, 2));
+    });
+
+    // Check auth status
     const checkAuthStatus = async () => {
       try {
-        // Check for the presence of 'token' and 'userId' in AsyncStorage
         const token = await AsyncStorage.getItem('token');
         const userId = await AsyncStorage.getItem('userId');
-
-        // If both token and userId exist, the user is considered logged in
-        if (token && userId) {
-          setIsLoggedIn(true);
-        } else {
-          setIsLoggedIn(false);
-        }
+        setIsLoggedIn(!!(token && userId));
       } catch (error) {
         console.error('Error checking authentication status:', error);
-        // In case of an error, assume not logged in to prevent infinite loops
         setIsLoggedIn(false);
       } finally {
-        setLoading(false); // Set loading to false once check is complete
+        setLoading(false);
       }
     };
-
     checkAuthStatus();
+
+    // Cleanup listeners
+    return () => {
+      notificationReceivedSubscription.remove();
+      notificationResponseSubscription.remove();
+    };
   }, []);
 
-  // While loading, return null to prevent rendering anything prematurely
   if (loading) {
     return null;
   }
 
-  // Redirect based on authentication status
-  // If logged in, redirect to the main tabs, otherwise redirect to the signup page
   return <Redirect href={isLoggedIn ? '/(tabs)' : '/signup'} />;
 }

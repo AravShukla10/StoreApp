@@ -2,6 +2,7 @@ const Booking = require('../models/Booking');
 const Item = require('../models/Item');
 const Shop = require('../models/Shop');
 const User = require('../models/User');
+const admin = require('firebase-admin'); // 1. Import firebase-admin
 
 // This function now creates a SINGLE booking with MULTIPLE items
 exports.createBooking = async (req, res) => {
@@ -108,16 +109,59 @@ exports.getBookingById = async (req, res) => {
 
 exports.updateBookingStatus = async (req, res) => {
     // ... logic is the same
-    const { status, isCompleted } = req.body;
+    const { status } = req.body;
     try {
-        let booking = await Booking.findById(req.params.id);
+        let booking = await Booking.findById(req.params.id).populate('userId');;
         if (!booking) {
           return res.status(404).json({ msg: 'Booking not found' });
         }
-        if (status) booking.status = status;
-        if (typeof isCompleted === 'boolean') booking.isCompleted = isCompleted;
-        if (status === 'completed') booking.isCompleted = true; // Convenience
+        booking.status = status;
+        if (status === 'completed') {
+            booking.isCompleted = true;
+        }
+        // if (typeof isCompleted === 'boolean') booking.isCompleted = isCompleted;
+        // if (status === 'completed') booking.isCompleted = true; // Convenience
         await booking.save();
+
+        // --- 3. NOTIFICATION LOGIC ---
+        const user = booking.userId;
+        if (user && user.pushToken) {
+            const pushToken = user.pushToken;
+            let payload;
+
+            if (status === 'confirmed') {
+                payload = {
+                    notification: {
+                        title: 'Your Order is Packed! 🎉',
+                        body: 'Your order is ready. You can come and pick it up.',
+                    },
+                    data: { orderId: booking._id.toString() }
+                };
+            } else if (status === 'completed') {
+                payload = {
+                    notification: {
+                        title: 'Order Completed ✅',
+                        body: 'Thank you for shopping with us!',
+                    },
+                    data: { orderId: booking._id.toString() }
+                };
+            }
+
+            if (payload) {
+                try {
+                    console.log(`Sending notification to token: ${pushToken}`);
+                    await admin.messaging().send({
+                        token: pushToken,
+                        ...payload
+                    });
+                    console.log('Notification sent successfully.');
+                } catch (error) {
+                    console.error('Error sending push notification:', error);
+                    // Do not block the main response if notification fails
+                }
+            }
+        }
+        // --- End of Notification Logic ---
         res.json(booking);
     } catch (err) {
         console.error(err.message);
