@@ -151,10 +151,30 @@ export default function TabLayout() {
           }}
         />
         <Tabs.Screen
+          name="trackorder"
+          options={{
+            tabBarLabel: "Track Order",
+            tabBarLabelStyle: styles.tabLabel,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="person-outline" color={color} size={size} />
+            ),
+          }}
+        />
+        <Tabs.Screen
           name="orders"
           options={{
             tabBarLabel: "Orders",
             tabBarLabelStyle: styles.tabLabel,
+          }}
+        />
+        <Tabs.Screen
+          name="admin"
+          options={{
+            tabBarLabel: "Admin",
+            tabBarLabelStyle: styles.tabLabel,
+            tabBarIcon: ({ color, size }) => (
+              <Ionicons name="person-outline" color={color} size={size} />
+            ),
           }}
         />
       </Tabs>
