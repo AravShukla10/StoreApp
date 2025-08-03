@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Alert } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
-import { useCart } from '../context/CartContext'; // Adjust path if needed
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useCart } from '../context/CartContext'; // Adjust path if needed
 
-const BASE_URL = 'http://10.0.2.2:5000';
+const BASE_URL = 'https://storeapp-rv3e.onrender.com';
 
 // This component renders a single item card with cart controls
 const ItemCard = ({ item, onUpdateCart }) => {

@@ -1,12 +1,18 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert,
-} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useCart } from '../context/CartContext';
 import { useFocusEffect } from '@react-navigation/native';
+import { useCallback, useState } from 'react';
+import {
+    ActivityIndicator, Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { useCart } from '../context/CartContext';
 
-const BASE_URL = 'http://10.0.2.2:5000';
+const BASE_URL = 'https://storeapp-rv3e.onrender.com';
 
 export default function Cart() {
   const { cart, updateCart, setCart } = useCart();

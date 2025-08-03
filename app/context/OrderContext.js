@@ -1,7 +1,7 @@
-import React, { createContext, useState, useContext, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { createContext, useCallback, useContext, useState } from 'react';
 
-const BASE_URL = 'http://10.0.2.2:5000';
+const BASE_URL = 'https://storeapp-rv3e.onrender.com';
 
 const OrderContext = createContext();
 

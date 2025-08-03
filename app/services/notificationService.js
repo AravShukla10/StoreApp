@@ -1,9 +1,9 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Alert, Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Ensure this matches the base URL of your server
-const BASE_URL = 'http://10.0.2.2:5000'; 
+const BASE_URL = 'https://storeapp-rv3e.onrender.com'; 
 
 /**
  * Registers the device for push notifications and sends the token to the backend.

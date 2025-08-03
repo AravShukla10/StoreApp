@@ -1,13 +1,19 @@
+import { Ionicons } from '@expo/vector-icons'; // Import Ionicons
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LinearGradient } from 'expo-linear-gradient'; // Import LinearGradient
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Image, ActivityIndicator, Alert,
+    ActivityIndicator, Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput, TouchableOpacity,
+    View,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCart } from '../context/CartContext'; // adjust path if needed
-import { LinearGradient } from 'expo-linear-gradient'; // Import LinearGradient
-import { Ionicons } from '@expo/vector-icons'; // Import Ionicons
 
-const BASE_URL = 'http://10.0.2.2:5000'; // Your API base URL
+const BASE_URL = 'https://storeapp-rv3e.onrender.com'; // Your API base URL
 const DEFAULT_SHOP_ID = '687631e69d85fbc4f3f85c78'; // Default shop ID as requested
 
 // Mock data for the new offers section, similar to what you'd get from an API
@@ -46,31 +52,37 @@ export default function Home() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // CORRECTED: Fetch initial shop data and categories from their respective endpoints.
     const fetchShopData = async () => {
       try {
         setLoading(true);
-        // In a real app, you might have separate API calls for each section
-        // For now, we fetch all items and then derive the other sections from it.
+        setError(null);
 
-        // 1. Fetch all items for the shop
-        const response = await fetch(`${BASE_URL}/api/items/shop/${DEFAULT_SHOP_ID}`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        // Fetch items and categories in parallel for better performance
+        const [itemsResponse, categoriesResponse] = await Promise.all([
+          fetch(`${BASE_URL}/api/items/shop/${DEFAULT_SHOP_ID}`),
+          fetch(`${BASE_URL}/api/categories`) // Fetch categories from the correct endpoint
+        ]);
+
+        if (!itemsResponse.ok) {
+          throw new Error(`HTTP error fetching items! status: ${itemsResponse.status}`);
         }
-        const itemsData = await response.json();
+        if (!categoriesResponse.ok) {
+          throw new Error(`HTTP error fetching categories! status: ${categoriesResponse.status}`);
+        }
+
+        const itemsData = await itemsResponse.json();
+        const categoriesData = await categoriesResponse.json();
+
+        // 1. Set Items-related state
         setFeaturedItems(itemsData);
+        setFrequentlyOrderedItems(itemsData.slice(0, 5)); // Keep simulation as is
 
-        // 2. Set Offers Data
-        // In a real app, you'd fetch this from `${BASE_URL}/api/offers/shop/${DEFAULT_SHOP_ID}`
+        // 2. Set Categories from the API
+        setCategories(categoriesData);
+
+        // 3. Set Offers Data (from mock data)
         setOffers(mockOffers);
-
-        // 3. Set Frequently Ordered Items (Simulated)
-        setFrequentlyOrderedItems(itemsData.slice(0, 5));
-
-        // 4. Set Categories
-        const uniqueTypes = [...new Set(itemsData.map(item => item.type))];
-        const formattedCategories = uniqueTypes.map(type => ({ name: type }));
-        setCategories(formattedCategories);
 
       } catch (e) {
         console.error("Failed to fetch shop data:", e);
@@ -146,16 +158,7 @@ export default function Home() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <TextInput style={styles.searchInput} placeholder="Search for groceries, vegetables..." placeholderTextColor="#888" />
       
-      {/* Categories Section */}
-      <Text style={styles.sectionTitle}>Categories</Text>
-      <View style={styles.categoriesContainer}>
-        {categories.map((cat, idx) => <TouchableOpacity key={idx} style={styles.categoryCard}><Text style={styles.categoryText}>{cat.name}</Text></TouchableOpacity>)}
-      </View>
-
-      {/* Deals & Offers Section */}
-      <Text style={styles.sectionTitle}>Deals & Offers</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScrollContainer}>
         {offers.map((offer) => (
           <TouchableOpacity key={offer.id} activeOpacity={0.8}>
@@ -172,6 +175,15 @@ export default function Home() {
         ))}
       </ScrollView>
 
+      <TextInput style={styles.searchInput} placeholder="Search for groceries, vegetables..." placeholderTextColor="#888" />
+      
+      {/* Categories Section */}
+      <Text style={styles.sectionTitle}>Categories</Text>
+      <View style={styles.categoriesContainer}>
+        {categories.map((cat, idx) => <TouchableOpacity key={idx} style={styles.categoryCard}><Text style={styles.categoryText}>{cat.name}</Text></TouchableOpacity>)}
+      </View>
+
+     
       {/* Frequently Ordered Items Section */}
       <Text style={styles.sectionTitle}>Frequently Ordered</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScrollContainer}>
@@ -219,7 +231,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, 
     fontSize: 16, 
     marginBottom: 24, 
-    marginTop: 16, 
+    marginTop: 1, 
     elevation: 2, 
     shadowColor: '#000', 
     shadowOffset: { width: 0, height: 1 }, 
@@ -257,6 +269,7 @@ const styles = StyleSheet.create({
     color: '#333' 
   },
   horizontalScrollContainer: { 
+    marginTop: 8,
     marginBottom: 24 
   },
   

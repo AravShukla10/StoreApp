@@ -1,8 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import {
-  View, Text, StyleSheet, SectionList, TouchableOpacity, Image, ActivityIndicator,
-} from 'react-native';
 import { useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import {
+    ActivityIndicator,
+    Image,
+    FlatList, // Using FlatList for the grid is a more robust approach
+    SectionList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 // This component renders a single subcategory card in the grid.
 const SubcategoryCard = ({ subcategory, onPress }) => (
@@ -29,20 +36,25 @@ export default function Categories() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('http://10.0.2.2:5000/api/categories');
+      const response = await fetch('https://storeapp-rv3e.onrender.com/api/categories');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
 
-      // Transform the API data into the format required by SectionList
+      // CORRECTED: Transform the API data into a more robust format for SectionList.
+      // Each section's data contains a single item: an object with a unique ID and the subcategory list.
+      // This prevents key conflicts and is a cleaner pattern.
       const formattedData = data
         .filter(category => category.subcategories.length > 0) // Only show categories with subcategories
         .map(category => ({
           title: category.name,
-          // The data for each section is the array of its subcategories,
-          // wrapped in another array so the grid renders once per section.
-          data: [category.subcategories], 
+          // The data for the section is an array with a single object.
+          // This object contains the subcategories needed to render the grid.
+          data: [{
+            id: category._id, // Unique ID for the keyExtractor
+            subcategories: category.subcategories
+          }], 
       }));
       
       setSections(formattedData);
@@ -62,6 +74,22 @@ export default function Categories() {
   const handleSubcategoryPress = (subcategory) => {
     // Navigate to a dynamic route, passing the subcategory's ID and name.
     router.push(`/products/${subcategory._id}?title=${encodeURIComponent(subcategory.name)}`);
+  };
+
+  // CORRECTED: The render function now correctly accesses the nested subcategories array.
+  const renderSectionGrid = ({ item }) => {
+    // item is now an object: { id: '...', subcategories: [...] }
+    return (
+      <View style={styles.sectionGrid}>
+        {item.subcategories.map(subcategory => (
+          <SubcategoryCard
+            key={subcategory._id}
+            subcategory={subcategory}
+            onPress={() => handleSubcategoryPress(subcategory)}
+          />
+        ))}
+      </View>
+    );
   };
 
   if (loading) {
@@ -87,25 +115,16 @@ export default function Categories() {
   return (
     <SectionList
       sections={sections}
-      keyExtractor={(item, index) => index.toString()}
+      // CORRECTED: The key extractor now uses the unique ID from our new data structure.
+      keyExtractor={(item) => item.id}
       stickySectionHeadersEnabled={false}
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 20 }}
       renderSectionHeader={({ section: { title } }) => (
         <Text style={styles.sectionHeaderText}>{title}</Text>
       )}
-      // 'item' is now the array of subcategories for the section
-      renderItem={({ item: subcategories }) => (
-        <View style={styles.sectionGrid}>
-          {subcategories.map(subcategory => (
-            <SubcategoryCard
-              key={subcategory._id}
-              subcategory={subcategory}
-              onPress={() => handleSubcategoryPress(subcategory)}
-            />
-          ))}
-        </View>
-      )}
+      // Use the corrected render function
+      renderItem={renderSectionGrid}
     />
   );
 }

@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
-import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Pressable
-} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
+import React, { useState } from 'react';
+import {
+    Modal, Pressable,
+    StyleSheet,
+    Text, TextInput, TouchableOpacity,
+    View
+} from 'react-native';
 // 1. Import the notification service
 import { registerForPushNotificationsAsync } from './services/notificationService';
 
 // Base URL for your backend API
-const API_BASE_URL = 'http://10.0.2.2:5000/api/users'; // Use 10.0.2.2 for Android emulator to access localhost
+const API_BASE_URL = 'https://storeapp-rv3e.onrender.com/api/users'; // Use 10.0.2.2 for Android emulator to access localhost
 
 // Custom Message Box Component
 const MessageBox = ({ message, type, onClose }) => {

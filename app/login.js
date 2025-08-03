@@ -1,17 +1,20 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Notifications from "expo-notifications";
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  View, Text, TextInput, TouchableOpacity, StyleSheet, Modal, Pressable,Platform,
+    Modal,
+    Platform,
+    Pressable,
+    StyleSheet,
+    Text, TextInput, TouchableOpacity,
+    View,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
-import * as Notifications from "expo-notifications";
-import Constants from 'expo-constants';
-import * as Application from 'expo-application';
 
 
 
 // Base URL for your backend API
-const API_BASE_URL = 'http://10.0.2.2:5000/api/users'; // Use 10.0.2.2 for Android emulator to access localhost
+const API_BASE_URL = 'https://storeapp-rv3e.onrender.com/api/users'; // Use 10.0.2.2 for Android emulator to access localhost
 
 // Custom Message Box Component (copied from signup.js for consistency)
 const MessageBox = ({ message, type, onClose }) => {
