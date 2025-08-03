@@ -13,16 +13,9 @@ const shopRoutes = require('./routes/shopRoutes');
 const bookingRoutes = require('./routes/bookingRoutes'); // Import booking routes
 const categoryRoutes = require('./routes/categoryRoutes');
 
-// 2. Add your Service Account Key
-const serviceAccount = require('./serviceAccountKey.json');
 
 const MONGOURI = process.env.URI;
 const app = express();
-
-// 3. Initialize Firebase Admin SDK
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
 
 async function connectDB() {
     const connection = await mongoose.connect(MONGOURI);
