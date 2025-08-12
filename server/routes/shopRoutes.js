@@ -2,35 +2,36 @@
 const express = require('express');
 const router = express.Router();
 const shopController = require('../controllers/shopController');
+const { authMiddleware } = require('../middleware/auth'); // Import your auth middleware
 
-// @route   POST api/shops/register
-// @desc    Register a new shop
-// @access  Public
-router.post('/register', shopController.registerShop);
-
-// @route   POST api/shops/login
-// @desc    Authenticate shop & get token
-// @access  Public
-router.post('/login', shopController.loginShop);
+// --- PUBLIC ROUTES ---
+// These routes are for customers browsing shops.
 
 // @route   GET api/shops
-// @desc    Get all shops
-// @access  Public (you might want to restrict this later)
+// @desc    Get all open shops
+// @access  Public
 router.get('/', shopController.getAllShops);
 
 // @route   GET api/shops/:id
-// @desc    Get shop by ID
-// @access  Public (you might want to restrict this later)
+// @desc    Get a single shop's public profile and its items
+// @access  Public
 router.get('/:id', shopController.getShopById);
 
-// @route   PUT api/shops/:id
-// @desc    Update shop information
-// @access  Private (e.g., only the shop itself or an admin)
-router.put('/:id', shopController.updateShop);
 
-// @route   DELETE api/shops/:id
-// @desc    Delete a shop
-// @access  Private (e.g., only the shop itself or an admin)
-router.delete('/:id', shopController.deleteShop);
+// --- PROTECTED OWNER ROUTE ---
+// This route is for the shop owner to manage their shop details.
+
+// @route   PUT api/shops/:id
+// @desc    Update shop information (e.g., name, isOpen status)
+// @access  Private (Owner only)
+router.put('/:id', authMiddleware, shopController.updateShop);
+
+
+/*
+  NOTE: The following routes have been removed:
+  - POST /register -> Replaced by the '/api/owners/register' route.
+  - POST /login    -> Replaced by the '/api/owners/login' route.
+  - DELETE /:id    -> This is now considered a super-admin action and has been removed for now.
+*/
 
 module.exports = router;

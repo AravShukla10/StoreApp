@@ -2,11 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useCart } from '../context/CartContext'; // Adjust path if needed
+import { useCart } from '../context/CartContext';
 
-const BASE_URL = 'https://storeapp-rv3e.onrender.com';
+const BASE_URL = 'http://10.0.2.2:5000';
 
-// This component renders a single item card with cart controls
 const ItemCard = ({ item, onUpdateCart }) => {
   const { cart } = useCart();
   const itemInCart = cart[item.name] > 0;
@@ -44,7 +43,8 @@ const ItemCard = ({ item, onUpdateCart }) => {
 
 export default function ProductListScreen() {
   const { subcategoryId, title } = useLocalSearchParams();
-  const { updateCart } = useCart();
+  // --- UPDATED: Get cart state here to use it in the stock check ---
+  const { cart, updateCart } = useCart();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -92,7 +92,23 @@ export default function ProductListScreen() {
     }
   };
 
+  // --- UPDATED: handleUpdateCart now checks for available stock ---
   const handleUpdateCart = (item, change) => {
+    // Only check stock when increasing quantity
+    if (change > 0) {
+      const currentQuantityInCart = cart[item.name] || 0;
+      const availableStock = item.quantity_avl;
+
+      if (currentQuantityInCart >= availableStock) {
+        Alert.alert(
+          "Stock Limit Reached",
+          `Sorry, only ${availableStock} units of "${item.name}" are available.`
+        );
+        return; // Prevent adding the item
+      }
+    }
+
+    // Proceed if stock is available or if decreasing quantity
     updateCart(item.name, change);
     syncCartWithBackend(item, change);
   };

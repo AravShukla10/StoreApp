@@ -133,7 +133,7 @@ export default function TabLayout() {
             ),
           }}
         />
-        <Tabs.Screen
+        {/* <Tabs.Screen
           name="offers"
           options={{
             tabBarLabel: "Offers",
@@ -142,7 +142,7 @@ export default function TabLayout() {
               <Ionicons name="pricetag-outline" color={color} size={size} />
             ),
           }}
-        />
+        /> */}
         <Tabs.Screen
           name="cart"
           options={{
@@ -150,7 +150,7 @@ export default function TabLayout() {
             tabBarLabelStyle: styles.tabLabel,
           }}
         />
-        <Tabs.Screen
+        {/* <Tabs.Screen
           name="trackorder"
           options={{
             tabBarLabel: "Track Order",
@@ -159,7 +159,7 @@ export default function TabLayout() {
               <Ionicons name="person-outline" color={color} size={size} />
             ),
           }}
-        />
+        /> */}
         <Tabs.Screen
           name="orders"
           options={{
@@ -167,16 +167,7 @@ export default function TabLayout() {
             tabBarLabelStyle: styles.tabLabel,
           }}
         />
-        <Tabs.Screen
-          name="admin"
-          options={{
-            tabBarLabel: "Admin",
-            tabBarLabelStyle: styles.tabLabel,
-            tabBarIcon: ({ color, size }) => (
-              <Ionicons name="person-outline" color={color} size={size} />
-            ),
-          }}
-        />
+       
       </Tabs>
     </SafeAreaView>
   );

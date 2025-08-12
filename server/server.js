@@ -12,7 +12,7 @@ const itemRoutes = require('./routes/itemRoutes');
 const shopRoutes = require('./routes/shopRoutes');
 const bookingRoutes = require('./routes/bookingRoutes'); // Import booking routes
 const categoryRoutes = require('./routes/categoryRoutes');
-
+const ownerRoutes = require('./routes/ownerRoutes'); // Import owner routes
 
 const MONGOURI = process.env.URI;
 const app = express();
@@ -29,6 +29,7 @@ app.use('/api/items', itemRoutes);
 app.use('/api/shops', shopRoutes);
 app.use('/api/bookings', bookingRoutes); // Use booking routes
 app.use('/api/categories', categoryRoutes);
+app.use('/api/owners',ownerRoutes ); // Import owner routes
 
 app.listen(5000,()=>{
     console.log("Server is running on 5000");

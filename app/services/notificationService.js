@@ -3,7 +3,7 @@ import * as Notifications from 'expo-notifications';
 import { Alert, Platform } from 'react-native';
 
 // Ensure this matches the base URL of your server
-const BASE_URL = 'https://storeapp-rv3e.onrender.com'; 
+const BASE_URL = 'http://10.0.2.2:5000'; 
 
 /**
  * Registers the device for push notifications and sends the token to the backend.

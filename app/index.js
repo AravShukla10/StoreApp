@@ -6,19 +6,18 @@ import * as Notifications from "expo-notifications";
 // Show notifications as banners/etc. when the app is in the foreground
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,   
     shouldPlaySound: true,
     shouldSetBadge: true,
-    // iOS 14+
-    shouldShowBanner: true,
-    shouldShowList: true,
   }),
 });
+
 
 export default function Index() {
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-
+  const [role, setRole] = useState("User");
   useEffect(() => {
     // Listen for notifications received in the foreground
     const notificationReceivedSubscription = Notifications.addNotificationReceivedListener(notification => {
@@ -38,6 +37,9 @@ export default function Index() {
         const token = await AsyncStorage.getItem('token');
         const userId = await AsyncStorage.getItem('userId');
         setIsLoggedIn(!!(token && userId));
+        const userRole = await AsyncStorage.getItem('userRole');
+        console.log('User Role:', userRole);
+        setRole(userRole || 'User'); // Default to 'user' if role is not
       } catch (error) {
         console.error('Error checking authentication status:', error);
         setIsLoggedIn(false);
@@ -58,5 +60,5 @@ export default function Index() {
     return null;
   }
 
-  return <Redirect href={isLoggedIn ? '/(tabs)' : '/signup'} />;
+  return <Redirect href={isLoggedIn ? role==='User'?'/(tabs)': '/(owner)' : '/signup'} />;
 }

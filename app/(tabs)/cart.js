@@ -2,20 +2,20 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import {
-    ActivityIndicator, Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator, Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import { useCart } from '../context/CartContext';
 
-const BASE_URL = 'https://storeapp-rv3e.onrender.com';
+const BASE_URL = 'http://10.0.2.2:5000';
 
 export default function Cart() {
-  const { cart, updateCart, setCart } = useCart();
+  const { updateCart, setCart } = useCart();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userId, setUserId] = useState(null);
@@ -79,35 +79,25 @@ export default function Cart() {
       }, {});
 
       const bookingPromises = Object.entries(ordersByShop).map(([shopId, items]) => {
-        const bookingData = {
-          userId,
-          shopId,
-          items,
-          notes: "Placed from mobile app",
-        };
-
+        const bookingData = { userId, shopId, items, notes: "Placed from mobile app" };
         return fetch(`${BASE_URL}/api/bookings`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify(bookingData),
-        }).then(res => {
-          if (!res.ok) throw new Error(`Failed to create order for shop ${shopId}.`);
+        }).then(async res => {
+          if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.message || `Failed to create order for one of the shops.`);
+          }
         });
       });
 
       await Promise.all(bookingPromises);
 
-      const clearCartResponse = await fetch(`${BASE_URL}/api/users/${userId}/cart`, {
+      await fetch(`${BASE_URL}/api/users/${userId}/cart`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` },
       });
-
-      if (!clearCartResponse.ok) {
-        throw new Error('Orders placed, but failed to clear the cart.');
-      }
 
       setDetailedFetchedCart([]);
       setCart({});
@@ -138,7 +128,27 @@ export default function Cart() {
     }
   };
 
+  // --- UPDATED: This function now checks for available stock before increasing quantity ---
   const handleQuantityChangeUpdated = (itemDetails, change) => {
+    // Only check stock when increasing quantity
+    if (change > 0) {
+      const cartItem = detailedFetchedCart.find(ci => ci.itemId?._id === itemDetails._id);
+      
+      if (cartItem) {
+        const currentQuantityInCart = cartItem.quantity;
+        const availableStock = itemDetails.quantity_avl;
+
+        if (currentQuantityInCart >= availableStock) {
+          Alert.alert(
+            "Stock Limit Reached",
+            `Sorry, only ${availableStock} units of "${itemDetails.name}" are available.`
+          );
+          return; // Stop the function here
+        }
+      }
+    }
+
+    // Proceed if stock is available or when decreasing quantity
     updateCart(itemDetails.name, change);
     syncCartWithBackend(itemDetails._id, change);
   };

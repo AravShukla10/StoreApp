@@ -1,38 +1,19 @@
 // controllers/shopController.js
 const Shop = require('../models/Shop');
-const bcrypt = require('bcryptjs');
+const Item = require('../models/Item'); // To populate items
 
-// Register a new shop
-exports.registerShop = async (req, res) => {
-  const { name, phone, password } = req.body;
-  try {
-    let shop = await Shop.findOne({ phone });
-    if (shop) {
-      return res.status(400).json({ msg: 'Shop with this phone number already exists' });
-    }
+// Note: bcrypt is no longer needed here as this controller doesn't handle passwords.
 
-    shop = new Shop({
-      name,
-      phone,
-      password,
-    });
+// --- PUBLIC-FACING FUNCTIONS ---
 
-    // Password hashing is handled by the pre-save hook in the Shop model
-
-    await shop.save();
-
-    // In a real application, you might generate a JWT here for authentication
-    res.status(201).json({ msg: 'Shop registered successfully', shop: { id: shop._id, name: shop.name, phone: shop.phone } });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-};
-
-// Get all shops
+/**
+ * @desc    Get all shops for users to browse
+ * @route   GET /api/shops
+ */
 exports.getAllShops = async (req, res) => {
   try {
-    const shops = await Shop.find().select('-password'); // Exclude password from results
+    // We no longer need to .select('-password') since the field is removed
+    const shops = await Shop.find({ isOpen: true }); // Only show open shops
     res.json(shops);
   } catch (err) {
     console.error(err.message);
@@ -40,26 +21,48 @@ exports.getAllShops = async (req, res) => {
   }
 };
 
-// Get shop by ID
+/**
+ * @desc    Get a single shop's public profile and its items
+ * @route   GET /api/shops/:id
+ */
 exports.getShopById = async (req, res) => {
   try {
-    const shop = await Shop.findById(req.params.id).select('-password');
+    const shop = await Shop.findById(req.params.id).populate({
+        path: 'items',
+        // --- FIX: Added 'quantity_avl' to the select string ---
+        select: 'name price_per_quantity imageUrl category subcategory quantity_avl',
+        populate: [
+            { path: 'category', select: 'name' },
+            { path: 'subcategory', select: 'name' }
+        ]
+    });
+    
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
     }
     res.json(shop);
   } catch (err) {
     console.error(err.message);
+    if (err.kind === 'ObjectId') {
+        return res.status(404).json({ msg: 'Shop not found' });
+    }
     res.status(500).send('Server Error');
   }
 };
 
-// Update shop information
+
+// --- ADMIN / OWNER PROTECTED FUNCTIONS (Optional) ---
+// These functions would be protected by an admin or owner auth middleware.
+
+/**
+ * @desc    Update shop information (e.g., name, isOpen status)
+ * @route   PUT /api/shops/:id
+ * @access  Protected (Admin or Owner)
+ */
 exports.updateShop = async (req, res) => {
-  const { name, phone, isOpen } = req.body; // Password updates should be handled separately for security
+  const { name, isOpen } = req.body;
   const shopFields = {};
   if (name) shopFields.name = name;
-  if (phone) shopFields.phone = phone;
   if (typeof isOpen === 'boolean') shopFields.isOpen = isOpen;
 
   try {
@@ -68,20 +71,18 @@ exports.updateShop = async (req, res) => {
     if (!shop) {
       return res.status(404).json({ msg: 'Shop not found' });
     }
-
-    // Check if the new phone number is already taken by another shop
-    if (phone && phone !== shop.phone) {
-      const existingShop = await Shop.findOne({ phone });
-      if (existingShop) {
-        return res.status(400).json({ msg: 'Phone number already registered by another shop' });
-      }
+    
+    // Authorization check: Ensure the logged-in user is the owner of this shop
+    // This assumes your auth middleware attaches the user/owner to req.user
+    if (shop.owner.toString() !== req.user.id) {
+        return res.status(401).json({ msg: 'User not authorized to update this shop' });
     }
 
     shop = await Shop.findByIdAndUpdate(
       req.params.id,
       { $set: shopFields },
       { new: true }
-    ).select('-password'); // Return the updated document
+    );
 
     res.json(shop);
   } catch (err) {
@@ -90,44 +91,11 @@ exports.updateShop = async (req, res) => {
   }
 };
 
-// Delete a shop
-exports.deleteShop = async (req, res) => {
-  try {
-    const shop = await Shop.findById(req.params.id);
+/*
+  NOTE: The following functions from your original file have been removed 
+  as they are now obsolete with the new Owner-based architecture:
 
-    if (!shop) {
-      return res.status(404).json({ msg: 'Shop not found' });
-    }
-
-    await Shop.findByIdAndDelete(req.params.id);
-
-    res.json({ msg: 'Shop removed' });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-};
-
-// Login shop (basic example, typically involves JWT)
-exports.loginShop = async (req, res) => {
-  const { phone, password } = req.body;
-
-  try {
-    const shop = await Shop.findOne({ phone }).select('+password'); // Select password to compare
-    if (!shop) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
-    }
-
-    const isMatch = await bcrypt.compare(password, shop.password);
-    if (!isMatch) {
-      return res.status(400).json({ msg: 'Invalid credentials' });
-    }
-
-    // In a real application, generate and send a JWT
-    res.json({ msg: 'Shop logged in successfully', shop: { id: shop._id, name: shop.name, phone: shop.phone } });
-
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
-  }
-};
+  - exports.registerShop  -> Replaced by registerOwner in ownerController.
+  - exports.loginShop     -> Replaced by loginOwner in ownerController.
+  - exports.deleteShop    -> This would typically be a super-admin function.
+*/

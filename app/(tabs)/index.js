@@ -1,20 +1,21 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router'; // Import useRouter for navigation
-import React, { useEffect, useState } from 'react';
+// --- UPDATED: Import useFocusEffect and useCallback ---
+import { useFocusEffect, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
-    ActivityIndicator, Alert,
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput, TouchableOpacity,
-    View,
+  ActivityIndicator, Alert,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput, TouchableOpacity,
+  View,
 } from 'react-native';
 import { useCart } from '../context/CartContext';
 
-const BASE_URL = 'https://storeapp-rv3e.onrender.com';
+const BASE_URL = 'http://10.0.2.2:5000';
 const DEFAULT_SHOP_ID = '687631e69d85fbc4f3f85c78';
 
 const mockOffers = [
@@ -24,7 +25,7 @@ const mockOffers = [
 ];
 
 export default function Home() {
-  const router = useRouter(); // Initialize router
+  const router = useRouter();
   const { cart, updateCart } = useCart();
   const [categories, setCategories] = useState([]);
   const [featuredItems, setFeaturedItems] = useState([]);
@@ -33,35 +34,48 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchShopData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const [itemsResponse, categoriesResponse] = await Promise.all([
-          fetch(`${BASE_URL}/api/items/shop/${DEFAULT_SHOP_ID}`),
-          fetch(`${BASE_URL}/api/categories`)
-        ]);
-        if (!itemsResponse.ok) throw new Error(`HTTP error fetching items! status: ${itemsResponse.status}`);
-        if (!categoriesResponse.ok) throw new Error(`HTTP error fetching categories! status: ${categoriesResponse.status}`);
-        const itemsData = await itemsResponse.json();
-        const categoriesData = await categoriesResponse.json();
-        setFeaturedItems(itemsData);
-        setFrequentlyOrderedItems(itemsData.slice(0, 5));
-        setCategories(categoriesData);
-        setOffers(mockOffers);
-      } catch (e) {
-        console.error("Failed to fetch shop data:", e);
-        setError("Failed to load shop items. Please try again later.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchShopData();
-  }, []);
+  // --- UPDATED: Data fetching logic for silent background updates ---
+  const fetchShopData = useCallback(async () => {
+    // Only show the full-screen loader on the initial load.
+    // Subsequent loads (when the screen is focused) will be silent.
+    if (featuredItems.length === 0) {
+      setLoading(true);
+    }
+    setError(null);
+    try {
+      const [itemsResponse, categoriesResponse] = await Promise.all([
+        fetch(`${BASE_URL}/api/items/shop/${DEFAULT_SHOP_ID}`),
+        fetch(`${BASE_URL}/api/categories`)
+      ]);
+      if (!itemsResponse.ok) throw new Error(`HTTP error fetching items! status: ${itemsResponse.status}`);
+      if (!categoriesResponse.ok) throw new Error(`HTTP error fetching categories! status: ${categoriesResponse.status}`);
+      const itemsData = await itemsResponse.json();
+      const categoriesData = await categoriesResponse.json();
 
-  // --- NAVIGATION HANDLER ---
-  // This function navigates to the categories screen, passing the category name as a param.
+      setFeaturedItems(itemsData);
+      setFrequentlyOrderedItems(itemsData.slice(0, 5));
+      setCategories(categoriesData);
+      
+      // Set mock offers only once
+      if (offers.length === 0) {
+          setOffers(mockOffers);
+      }
+    } catch (e) {
+      console.error("Failed to fetch shop data:", e);
+      setError("Failed to load shop items. Please try again later.");
+    } finally {
+      // Always turn off the loader after a fetch attempt.
+      setLoading(false);
+    }
+  }, [featuredItems.length, offers.length]); // Dependencies for useCallback
+
+  // --- UPDATED: Use useFocusEffect to refetch data every time the screen is viewed ---
+  useFocusEffect(
+    useCallback(() => {
+      fetchShopData();
+    }, [fetchShopData])
+  );
+
   const handleCategoryPress = (category) => {
     router.push(`/categories?title=${encodeURIComponent(category.name)}`);
   };
@@ -97,6 +111,19 @@ export default function Home() {
   };
 
   const handleUpdateCart = (itemName, change) => {
+    if (change > 0) {
+      const allItems = [...featuredItems, ...frequentlyOrderedItems];
+      const item = allItems.find(i => i.name === itemName);
+      
+      if (item) {
+        const currentQuantityInCart = cart[itemName] || 0;
+        if (currentQuantityInCart >= item.quantity_avl) {
+          Alert.alert("Out of Stock", `Sorry, only ${item.quantity_avl} units of "${itemName}" are available.`);
+          return;
+        }
+      }
+    }
+    
     updateCart(itemName, change);
     syncCartWithBackend(itemName, change);
   };
@@ -144,7 +171,6 @@ export default function Home() {
       
       <Text style={styles.sectionTitle}>Categories</Text>
       <View style={styles.categoriesContainer}>
-        {/* UPDATED: Added TouchableOpacity and onPress handler to navigate */}
         {categories.map((cat) => (
           <TouchableOpacity key={cat._id} style={styles.categoryCard} onPress={() => handleCategoryPress(cat)}>
             <Text style={styles.categoryText}>{cat.name}</Text>
@@ -183,7 +209,6 @@ export default function Home() {
   );
 }
 
-// --- STYLES (No changes needed here) ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAFB', paddingHorizontal: 16 },
   centerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },

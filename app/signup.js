@@ -11,7 +11,7 @@ import {
 import { registerForPushNotificationsAsync } from './services/notificationService';
 
 // Base URL for your backend API
-const API_BASE_URL = 'https://storeapp-rv3e.onrender.com/api/users'; // Use 10.0.2.2 for Android emulator to access localhost
+const API_BASE_URL = 'http://10.0.2.2:5000/api/users'; // Use 10.0.2.2 for Android emulator to access localhost
 
 // Custom Message Box Component
 const MessageBox = ({ message, type, onClose }) => {
