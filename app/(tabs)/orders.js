@@ -5,8 +5,6 @@ import { ActivityIndicator, FlatList, ScrollView, StyleSheet, Text, TouchableOpa
 import { Ionicons } from '@expo/vector-icons';
 import { useOrders } from '../context/OrderContext';
 
-// --- Reusable Components ---
-
 const OrderSkeletonCard = () => (
   <View style={styles.skeletonCard}>
     <View style={styles.skeletonHeader}>

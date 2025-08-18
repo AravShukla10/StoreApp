@@ -24,12 +24,16 @@ if(connection)
 }
 
 app.use(express.json());
+app.get('/', (req, res) => {
+    res.send("API is running");
+});
+
 app.use('/api/users', userRoutes);
 app.use('/api/items', itemRoutes);
 app.use('/api/shops', shopRoutes);
-app.use('/api/bookings', bookingRoutes); // Use booking routes
+app.use('/api/bookings', bookingRoutes); 
 app.use('/api/categories', categoryRoutes);
-app.use('/api/owners',ownerRoutes ); // Import owner routes
+app.use('/api/owners',ownerRoutes ); 
 
 app.listen(5000,()=>{
     console.log("Server is running on 5000");
