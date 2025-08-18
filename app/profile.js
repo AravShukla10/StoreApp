@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 // Base URL for your backend API
-const API_BASE_URL = 'http://10.0.2.2:5000/api/users';
+const API_BASE_URL = 'https://storeapp-uqap.onrender.com/api/users';
 
 // Custom Message Box Component
 const MessageBox = ({ message, type, onClose }) => {

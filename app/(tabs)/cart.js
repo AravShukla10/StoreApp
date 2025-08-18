@@ -2,17 +2,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { useCallback, useState } from 'react';
 import {
-  ActivityIndicator, Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator, Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useCart } from '../context/CartContext';
 
-const BASE_URL = 'http://10.0.2.2:5000';
+const BASE_URL = 'https://storeapp-uqap.onrender.com';
 
 export default function Cart() {
   const { updateCart, setCart } = useCart();

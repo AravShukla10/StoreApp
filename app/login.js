@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 
 // Base URLs for your backend API
-const API_BASE_URL_USERS = 'http://10.0.2.2:5000/api/users';
-const API_BASE_URL_OWNERS = 'http://10.0.2.2:5000/api/owners';
+const API_BASE_URL_USERS = 'https://storeapp-uqap.onrender.com/api/users';
+const API_BASE_URL_OWNERS = 'https://storeapp-uqap.onrender.com/api/owners';
 
 // Custom Message Box Component
 const MessageBox = ({ message, type, onClose }) => {

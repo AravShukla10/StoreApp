@@ -16,8 +16,8 @@ import {
     View
 } from 'react-native';
 
-const API_BASE_URL_OWNERS = 'http://10.0.2.2:5000/api/owners';
-const API_BASE_URL_CATEGORIES = 'http://10.0.2.2:5000/api/categories';
+const API_BASE_URL_OWNERS = 'https://storeapp-uqap.onrender.com/api/owners';
+const API_BASE_URL_CATEGORIES = 'https://storeapp-uqap.onrender.com/api/categories';
 
 export default function AddItemScreen() {
     const [name, setName] = useState('');

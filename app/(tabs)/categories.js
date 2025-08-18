@@ -1,13 +1,13 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router'; // UPDATED: Imported useFocusEffect
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  Image,
-  SectionList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Image,
+    SectionList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 const SubcategoryCard = ({ subcategory, onPress, isInStock }) => (
@@ -53,8 +53,8 @@ export default function Categories() {
     setError(null);
     try {
       const [categoriesResponse, itemsResponse] = await Promise.all([
-          fetch('http://10.0.2.2:5000/api/categories'),
-          fetch('http://10.0.2.2:5000/api/items/shop/687631e69d85fbc4f3f85c78')
+          fetch('https://storeapp-uqap.onrender.com/api/categories'),
+          fetch('https://storeapp-uqap.onrender.com/api/items/shop/687631e69d85fbc4f3f85c78')
       ]);
       
       if (!categoriesResponse.ok) throw new Error(`HTTP error fetching categories! status: ${categoriesResponse.status}`);

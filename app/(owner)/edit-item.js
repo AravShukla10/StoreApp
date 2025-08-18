@@ -12,7 +12,7 @@ import {
     View,
 } from 'react-native';
 
-const API_BASE_URL_ITEMS = 'http://10.0.2.2:5000/api/items';
+const API_BASE_URL_ITEMS = 'https://storeapp-uqap.onrender.com/api/items';
 
 export default function EditItemScreen() {
     const { itemId } = useLocalSearchParams();

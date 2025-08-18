@@ -34,8 +34,15 @@ app.use('/api/shops', shopRoutes);
 app.use('/api/bookings', bookingRoutes); 
 app.use('/api/categories', categoryRoutes);
 app.use('/api/owners',ownerRoutes ); 
-
+app.get('/ping', (req, res) => {
+  res.send('pong');
+});
 app.listen(5000,()=>{
     console.log("Server is running on 5000");
     connectDB();
+        setInterval(() => {
+  fetch('https://storeapp-uqap.onrender.com/ping')
+    .then(() => console.log('Pinged self!'))
+    .catch(() => console.log('Self ping failed.'));
+}, 1000 * 60 * 10);
 });

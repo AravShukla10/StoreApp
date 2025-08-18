@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useCart } from '../context/CartContext';
 
-const BASE_URL = 'http://10.0.2.2:5000';
+const BASE_URL = 'https://storeapp-uqap.onrender.com';
 
 const ItemCard = ({ item, onUpdateCart }) => {
   const { cart } = useCart();

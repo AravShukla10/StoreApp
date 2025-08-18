@@ -26,8 +26,8 @@ Notifications.setNotificationHandler({
   }),
 });
 
-const API_BASE_URL_OWNERS = 'http://10.0.2.2:5000/api/owners';
-const API_BASE_URL_BOOKINGS = 'http://10.0.2.2:5000/api/bookings';
+const API_BASE_URL_OWNERS = 'https://storeapp-uqap.onrender.com/api/owners';
+const API_BASE_URL_BOOKINGS = 'https://storeapp-uqap.onrender.com/api/bookings';
 
 // --- Reusable Components ---
 const KpiCard = ({ icon, title, value, color }) => (

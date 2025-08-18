@@ -5,17 +5,17 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import React, { useCallback, useState } from 'react';
 import {
-  ActivityIndicator, Alert,
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput, TouchableOpacity,
-  View,
+    ActivityIndicator, Alert,
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput, TouchableOpacity,
+    View,
 } from 'react-native';
 import { useCart } from '../context/CartContext';
 
-const BASE_URL = 'http://10.0.2.2:5000';
+const BASE_URL = 'https://storeapp-uqap.onrender.com';
 const DEFAULT_SHOP_ID = '687631e69d85fbc4f3f85c78';
 
 const mockOffers = [
